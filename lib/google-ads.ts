@@ -6,6 +6,19 @@ export type GoogleAdsMetrics = {
   conversionValue: number;
 };
 
+export type CalculatedGoogleAdsMetrics = {
+  spend: number;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  cpc: number;
+  conversions: number;
+  conversionRate: number;
+  cpa: number;
+  conversionValue: number;
+  roas: number;
+};
+
 export type GoogleAdsCampaign = {
   id: string;
   name: string;
@@ -38,6 +51,12 @@ export function getCpc(metrics: GoogleAdsMetrics) {
   return metrics.cost / metrics.clicks;
 }
 
+export function getConversionRate(metrics: GoogleAdsMetrics) {
+  if (metrics.clicks === 0) return 0;
+
+  return (metrics.conversions / metrics.clicks) * 100;
+}
+
 export function getCpa(metrics: GoogleAdsMetrics) {
   if (metrics.conversions === 0) return 0;
 
@@ -48,4 +67,44 @@ export function getRoas(metrics: GoogleAdsMetrics) {
   if (metrics.cost === 0) return 0;
 
   return metrics.conversionValue / metrics.cost;
+}
+
+export function calculateGoogleAdsMetrics(
+  metrics: GoogleAdsMetrics,
+): CalculatedGoogleAdsMetrics {
+  return {
+    spend: metrics.cost,
+    clicks: metrics.clicks,
+    impressions: metrics.impressions,
+    ctr: getCtr(metrics),
+    cpc: getCpc(metrics),
+    conversions: metrics.conversions,
+    conversionRate: getConversionRate(metrics),
+    cpa: getCpa(metrics),
+    conversionValue: metrics.conversionValue,
+    roas: getRoas(metrics),
+  };
+}
+
+export function aggregateGoogleAdsMetrics(
+  metrics: readonly GoogleAdsMetrics[],
+): CalculatedGoogleAdsMetrics {
+  const totals = metrics.reduce<GoogleAdsMetrics>(
+    (total, current) => ({
+      impressions: total.impressions + current.impressions,
+      clicks: total.clicks + current.clicks,
+      cost: total.cost + current.cost,
+      conversions: total.conversions + current.conversions,
+      conversionValue: total.conversionValue + current.conversionValue,
+    }),
+    {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      conversionValue: 0,
+    },
+  );
+
+  return calculateGoogleAdsMetrics(totals);
 }

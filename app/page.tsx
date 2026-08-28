@@ -1,5 +1,6 @@
 import googleAdsData from "@/data/google-ads-sample.json";
 import {
+  aggregateGoogleAdsMetrics,
   getCpa,
   getCpc,
   getCtr,
@@ -10,23 +11,8 @@ import {
 export default function Home() {
   const data = googleAdsData as GoogleAdsSampleData;
 
-  const totals = data.campaigns.reduce(
-    (total, campaign) => {
-      total.impressions += campaign.metrics.impressions;
-      total.clicks += campaign.metrics.clicks;
-      total.cost += campaign.metrics.cost;
-      total.conversions += campaign.metrics.conversions;
-      total.conversionValue += campaign.metrics.conversionValue;
-
-      return total;
-    },
-    {
-      impressions: 0,
-      clicks: 0,
-      cost: 0,
-      conversions: 0,
-      conversionValue: 0,
-    }
+  const totals = aggregateGoogleAdsMetrics(
+    data.campaigns.map((campaign) => campaign.metrics),
   );
 
   return (
@@ -40,7 +26,7 @@ export default function Home() {
         <section className="mb-8 grid gap-4 md:grid-cols-4">
           <MetricCard
             label="Spend"
-            value={`$${totals.cost.toLocaleString(undefined, {
+            value={`$${totals.spend.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}`}
@@ -53,12 +39,12 @@ export default function Home() {
 
           <MetricCard
             label="CPA"
-            value={`$${getCpa(totals).toFixed(2)}`}
+            value={`$${totals.cpa.toFixed(2)}`}
           />
 
           <MetricCard
             label="ROAS"
-            value={`${getRoas(totals).toFixed(2)}x`}
+            value={`${totals.roas.toFixed(2)}x`}
           />
         </section>
 
