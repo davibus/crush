@@ -1,0 +1,74 @@
+{
+  "keywords": [
+    {
+      "id": "kw-001",
+      "campaignId": "camp-001",
+      "campaignName": "Brand Search",
+      "adGroup": "Brand",
+      "keyword": "crush marketing",
+      "matchType": "EXACT",
+      "status": "ENABLED",
+      "impressions": 5420,
+      "clicks": 684,
+      "cost": 752.4,
+      "conversions": 58,
+      "conversionValue": 7540
+    },
+    {
+      "id": "kw-002",
+      "campaignId": "camp-001",
+      "campaignName": "Brand Search",
+      "adGroup": "Brand",
+      "keyword": "crush ads",
+      "matchType": "PHRASE",
+      "status": "ENABLED",
+      "impressions": 3180,
+      "clicks": 331,
+      "cost": 430.3,
+      "conversions": 24,
+      "conversionValue": 3120
+    },
+    {
+      "id": "kw-003",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "keyword": "google ads management",
+      "matchType": "PHRASE",
+      "status": "ENABLED",
+      "impressions": 14200,
+      "clicks": 824,
+      "cost": 1895.2,
+      "conversions": 51,
+      "conversionValue": 6630
+    },
+    {
+      "id": "kw-004",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "keyword": "ppc agency",
+      "matchType": "BROAD",
+      "status": "ENABLED",
+      "impressions": 11140,
+      "clicks": 592,
+      "cost": 1539.2,
+      "conversions": 36,
+      "conversionValue": 4680
+    },
+    {
+      "id": "kw-005",
+      "campaignId": "camp-004",
+      "campaignName": "Competitor Search",
+      "adGroup": "Competitors",
+      "keyword": "competitor marketing agency",
+      "matchType": "PHRASE",
+      "status": "PAUSED",
+      "impressions": 9410,
+      "clicks": 512,
+      "cost": 1536,
+      "conversions": 21,
+      "conversionValue": 2730
+    }
+  ]
+}

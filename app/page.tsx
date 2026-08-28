@@ -1,69 +1,153 @@
-import Image from "next/image";
+import googleAdsData from "@/data/google-ads-sample.json";
+import {
+  getCpa,
+  getCpc,
+  getCtr,
+  getRoas,
+  type GoogleAdsSampleData,
+} from "@/lib/google-ads";
 
 export default function Home() {
+  const data = googleAdsData as GoogleAdsSampleData;
+
+  const totals = data.campaigns.reduce(
+    (total, campaign) => {
+      total.impressions += campaign.metrics.impressions;
+      total.clicks += campaign.metrics.clicks;
+      total.cost += campaign.metrics.cost;
+      total.conversions += campaign.metrics.conversions;
+      total.conversionValue += campaign.metrics.conversionValue;
+
+      return total;
+    },
+    {
+      impressions: 0,
+      clicks: 0,
+      cost: 0,
+      conversions: 0,
+      conversionValue: 0,
+    }
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-zinc-50 p-8 text-zinc-900">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Crush</h1>
+          <p className="mt-2 text-zinc-600">{data.account.name}</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        <section className="mb-8 grid gap-4 md:grid-cols-4">
+          <MetricCard
+            label="Spend"
+            value={`$${totals.cost.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`}
+          />
+
+          <MetricCard
+            label="Conversions"
+            value={totals.conversions.toLocaleString()}
+          />
+
+          <MetricCard
+            label="CPA"
+            value={`$${getCpa(totals).toFixed(2)}`}
+          />
+
+          <MetricCard
+            label="ROAS"
+            value={`${getRoas(totals).toFixed(2)}x`}
+          />
+        </section>
+
+        <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+          <div className="border-b border-zinc-200 px-6 py-4">
+            <h2 className="text-lg font-semibold">
+              Google Ads Campaigns
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-100 text-left">
+                <tr>
+                  <th className="px-6 py-3">Campaign</th>
+                  <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Spend</th>
+                  <th className="px-6 py-3">Clicks</th>
+                  <th className="px-6 py-3">CTR</th>
+                  <th className="px-6 py-3">CPC</th>
+                  <th className="px-6 py-3">Conversions</th>
+                  <th className="px-6 py-3">CPA</th>
+                  <th className="px-6 py-3">ROAS</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {data.campaigns.map((campaign) => (
+                  <tr
+                    key={campaign.id}
+                    className="border-t border-zinc-200"
+                  >
+                    <td className="px-6 py-4 font-medium">
+                      {campaign.name}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {campaign.status}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      ${campaign.metrics.cost.toFixed(2)}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {campaign.metrics.clicks.toLocaleString()}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {getCtr(campaign.metrics).toFixed(2)}%
+                    </td>
+
+                    <td className="px-6 py-4">
+                      ${getCpc(campaign.metrics).toFixed(2)}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {campaign.metrics.conversions}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      ${getCpa(campaign.metrics).toFixed(2)}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {getRoas(campaign.metrics).toFixed(2)}x
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-5">
+      <p className="text-sm text-zinc-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>
   );
 }

@@ -1,0 +1,65 @@
+{
+  "account": {
+    "id": "123-456-7890",
+    "name": "Crush Demo Google Ads Account",
+    "currency": "USD"
+  },
+  "campaigns": [
+    {
+      "id": "camp-001",
+      "name": "Brand Search",
+      "status": "ENABLED",
+      "channel": "SEARCH",
+      "dailyBudget": 75,
+      "metrics": {
+        "impressions": 12840,
+        "clicks": 1245,
+        "cost": 1867.5,
+        "conversions": 96,
+        "conversionValue": 12480
+      }
+    },
+    {
+      "id": "camp-002",
+      "name": "Non-Brand Search",
+      "status": "ENABLED",
+      "channel": "SEARCH",
+      "dailyBudget": 150,
+      "metrics": {
+        "impressions": 38420,
+        "clicks": 2168,
+        "cost": 4986.4,
+        "conversions": 134,
+        "conversionValue": 17420
+      }
+    },
+    {
+      "id": "camp-003",
+      "name": "Performance Max",
+      "status": "ENABLED",
+      "channel": "PERFORMANCE_MAX",
+      "dailyBudget": 200,
+      "metrics": {
+        "impressions": 68450,
+        "clicks": 3422,
+        "cost": 7248.8,
+        "conversions": 228,
+        "conversionValue": 31920
+      }
+    },
+    {
+      "id": "camp-004",
+      "name": "Competitor Search",
+      "status": "PAUSED",
+      "channel": "SEARCH",
+      "dailyBudget": 50,
+      "metrics": {
+        "impressions": 9410,
+        "clicks": 512,
+        "cost": 1536,
+        "conversions": 21,
+        "conversionValue": 2730
+      }
+    }
+  ]
+}

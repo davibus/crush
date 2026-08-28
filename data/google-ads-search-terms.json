@@ -1,0 +1,74 @@
+{
+  "searchTerms": [
+    {
+      "id": "st-001",
+      "campaignId": "camp-001",
+      "campaignName": "Brand Search",
+      "adGroup": "Brand",
+      "searchTerm": "crush marketing",
+      "matchedKeyword": "crush marketing",
+      "matchType": "EXACT",
+      "impressions": 2310,
+      "clicks": 326,
+      "cost": 342.3,
+      "conversions": 31,
+      "conversionValue": 4030
+    },
+    {
+      "id": "st-002",
+      "campaignId": "camp-001",
+      "campaignName": "Brand Search",
+      "adGroup": "Brand",
+      "searchTerm": "crush google ads",
+      "matchedKeyword": "crush ads",
+      "matchType": "PHRASE",
+      "impressions": 1740,
+      "clicks": 205,
+      "cost": 266.5,
+      "conversions": 17,
+      "conversionValue": 2210
+    },
+    {
+      "id": "st-003",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "searchTerm": "google ads management company",
+      "matchedKeyword": "google ads management",
+      "matchType": "PHRASE",
+      "impressions": 5280,
+      "clicks": 318,
+      "cost": 731.4,
+      "conversions": 22,
+      "conversionValue": 2860
+    },
+    {
+      "id": "st-004",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "searchTerm": "best ppc agency",
+      "matchedKeyword": "ppc agency",
+      "matchType": "BROAD",
+      "impressions": 4620,
+      "clicks": 241,
+      "cost": 626.6,
+      "conversions": 13,
+      "conversionValue": 1690
+    },
+    {
+      "id": "st-005",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "searchTerm": "free google ads help",
+      "matchedKeyword": "google ads management",
+      "matchType": "BROAD",
+      "impressions": 2120,
+      "clicks": 146,
+      "cost": 379.6,
+      "conversions": 1,
+      "conversionValue": 130
+    }
+  ]
+}

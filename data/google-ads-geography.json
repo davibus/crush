@@ -1,0 +1,59 @@
+{
+  "locations": [
+    {
+      "id": "geo-001",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "location": "Salt Lake City, UT",
+      "impressions": 8240,
+      "clicks": 512,
+      "cost": 1187.84,
+      "conversions": 39,
+      "conversionValue": 5070
+    },
+    {
+      "id": "geo-002",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "location": "Lehi, UT",
+      "impressions": 6140,
+      "clicks": 401,
+      "cost": 922.3,
+      "conversions": 31,
+      "conversionValue": 4030
+    },
+    {
+      "id": "geo-003",
+      "campaignId": "camp-003",
+      "campaignName": "Performance Max",
+      "location": "Provo, UT",
+      "impressions": 12220,
+      "clicks": 668,
+      "cost": 1416.16,
+      "conversions": 51,
+      "conversionValue": 7140
+    },
+    {
+      "id": "geo-004",
+      "campaignId": "camp-003",
+      "campaignName": "Performance Max",
+      "location": "Orem, UT",
+      "impressions": 10740,
+      "clicks": 544,
+      "cost": 1153.28,
+      "conversions": 42,
+      "conversionValue": 5880
+    },
+    {
+      "id": "geo-005",
+      "campaignId": "camp-004",
+      "campaignName": "Competitor Search",
+      "location": "Ogden, UT",
+      "impressions": 2940,
+      "clicks": 151,
+      "cost": 453,
+      "conversions": 4,
+      "conversionValue": 520
+    }
+  ]
+}

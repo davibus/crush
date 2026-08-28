@@ -1,0 +1,68 @@
+{
+  "conversions": [
+    {
+      "id": "conv-001",
+      "campaignId": "camp-001",
+      "campaignName": "Brand Search",
+      "conversionAction": "Lead Form Submission",
+      "conversions": 42,
+      "conversionValue": 5460
+    },
+    {
+      "id": "conv-002",
+      "campaignId": "camp-001",
+      "campaignName": "Brand Search",
+      "conversionAction": "Phone Call",
+      "conversions": 54,
+      "conversionValue": 7020
+    },
+    {
+      "id": "conv-003",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "conversionAction": "Lead Form Submission",
+      "conversions": 79,
+      "conversionValue": 10270
+    },
+    {
+      "id": "conv-004",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "conversionAction": "Phone Call",
+      "conversions": 55,
+      "conversionValue": 7150
+    },
+    {
+      "id": "conv-005",
+      "campaignId": "camp-003",
+      "campaignName": "Performance Max",
+      "conversionAction": "Lead Form Submission",
+      "conversions": 138,
+      "conversionValue": 19320
+    },
+    {
+      "id": "conv-006",
+      "campaignId": "camp-003",
+      "campaignName": "Performance Max",
+      "conversionAction": "Phone Call",
+      "conversions": 90,
+      "conversionValue": 12600
+    },
+    {
+      "id": "conv-007",
+      "campaignId": "camp-004",
+      "campaignName": "Competitor Search",
+      "conversionAction": "Lead Form Submission",
+      "conversions": 12,
+      "conversionValue": 1560
+    },
+    {
+      "id": "conv-008",
+      "campaignId": "camp-004",
+      "campaignName": "Competitor Search",
+      "conversionAction": "Phone Call",
+      "conversions": 9,
+      "conversionValue": 1170
+    }
+  ]
+}
