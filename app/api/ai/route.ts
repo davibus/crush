@@ -53,13 +53,6 @@ function analysisSummary() {
 }
 
 export async function POST(request: Request) {
-  if (!process.env.OPENAI_API_KEY) {
-    return errorResponse(
-      "AI is not configured. Add OPENAI_API_KEY to .env.local and restart the development server.",
-      503,
-    );
-  }
-
   let body: AiRequest;
 
   try {
@@ -81,12 +74,37 @@ export async function POST(request: Request) {
     );
   }
 
+  if (analysis.candidates.length === 0) {
+    const insufficient = validateCampaignAnalysisResponse(
+      { insights: [] },
+      analysis,
+    );
+
+    if (insufficient.success) {
+      return Response.json({
+        insights: insufficient.insights,
+        status: insufficient.status,
+        ...(insufficient.status === "insufficient_data"
+          ? { reason: insufficient.reason }
+          : {}),
+        analysis: analysisSummary(),
+      });
+    }
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return errorResponse(
+      "AI is not configured. Add OPENAI_API_KEY to .env.local and restart the development server.",
+      503,
+    );
+  }
+
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await openai.responses.parse({
       model: MODEL,
       instructions:
-        "You are a paid-media analyst. Return actionable marketing insights using only the prepared Google Ads analysis. Follow its candidate and evidence constraints exactly. Every insight must identify a problem or opportunity, recommend a specific action, describe the expected directional impact without inventing numbers, and express confidence from 0 to 1. Do not fabricate opportunities. Return no more than five insights.",
+        "You are selecting paid-media insights, not creating them. The prepared deterministic candidates are the only source of truth. Copy every selected candidate's entity, severity, finding, action, expected impact, and required evidence exactly. Never invent or change metrics, values, entities, findings, explanations, or recommendations. Never claim causes the supplied data does not prove. Return an empty insights array when the candidates do not support the request. Return no more than five insights.",
       input: buildCampaignAnalysisPrompt(analysis, prompt),
       text: {
         format: zodTextFormat(
@@ -108,6 +126,10 @@ export async function POST(request: Request) {
 
     return Response.json({
       insights: validation.insights,
+      status: validation.status,
+      ...(validation.status === "insufficient_data"
+        ? { reason: validation.reason }
+        : {}),
       analysis: analysisSummary(),
     });
   } catch (error) {

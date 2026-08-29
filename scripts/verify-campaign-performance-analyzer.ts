@@ -113,6 +113,12 @@ assert.ok(
   "Every candidate must include evidence.",
 );
 assert.ok(
+  sampleAnalysis.candidates.every(
+    (candidate) => candidate.requiredEvidence.length > 0,
+  ),
+  "Every candidate must identify the evidence required for its recommendation.",
+);
+assert.ok(
   sampleAnalysis.candidates
     .flatMap((candidate) => candidate.evidence)
     .every((evidence) => Number.isFinite(evidence.value)),
@@ -152,9 +158,9 @@ const validPayload = {
       problemOpportunity: firstCandidate.finding,
       severity: firstCandidate.severity,
       affectedEntity: firstCandidate.entity,
-      evidence: firstCandidate.evidence.slice(0, 3),
+      evidence: firstCandidate.requiredEvidence,
       recommendedAction: firstCandidate.actionDirection,
-      expectedImpact: "Improve efficiency while preserving measured conversion volume.",
+      expectedImpact: firstCandidate.expectedImpact,
       confidenceScore: 0.9,
     },
   ],
@@ -165,6 +171,7 @@ const successfulAnalysis = await analyzeCampaignPerformance(
   async (prompt) => {
     assert.match(prompt, /already calculated all basic metrics/);
     assert.match(prompt, /negative_keyword_opportunity/);
+    assert.match(prompt, /Never state or imply an unproved cause/);
     return validPayload;
   },
 );
@@ -195,10 +202,9 @@ const usefulRecommendations = await analyzeCampaignPerformance(
       problemOpportunity: item.finding,
       severity: item.severity,
       affectedEntity: item.entity,
-      evidence: item.evidence.slice(0, 3),
+      evidence: item.requiredEvidence,
       recommendedAction: item.actionDirection,
-      expectedImpact:
-        "Improve measured efficiency or scale while monitoring the cited evidence.",
+      expectedImpact: item.expectedImpact,
       confidenceScore: 0.9,
     })),
   }),

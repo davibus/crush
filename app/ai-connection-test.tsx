@@ -5,6 +5,8 @@ import type { MarketingInsight } from "@/lib/marketing-insights";
 
 type AiResponse = {
   insights?: MarketingInsight[];
+  status?: "grounded_insights" | "insufficient_data";
+  reason?: string;
   error?: string;
   analysis?: {
     candidateCount: number;
@@ -19,6 +21,7 @@ export default function AiConnectionTest() {
   );
   const [insights, setInsights] = useState<MarketingInsight[]>([]);
   const [analysis, setAnalysis] = useState<AiResponse["analysis"]>();
+  const [insufficientDataReason, setInsufficientDataReason] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,6 +29,7 @@ export default function AiConnectionTest() {
     event.preventDefault();
     setInsights([]);
     setAnalysis(undefined);
+    setInsufficientDataReason("");
     setError("");
     setIsLoading(true);
 
@@ -44,6 +48,11 @@ export default function AiConnectionTest() {
 
       setInsights(result.insights);
       setAnalysis(result.analysis);
+      if (result.status === "insufficient_data") {
+        setInsufficientDataReason(
+          result.reason ?? "There is insufficient data for a supported insight.",
+        );
+      }
     } catch {
       setError("Could not reach the Crush AI endpoint. Is the local server running?");
     } finally {
@@ -141,7 +150,8 @@ export default function AiConnectionTest() {
 
       {analysis && insights.length === 0 && !error ? (
         <p className="mt-4 text-sm text-zinc-600">
-          No evidence-backed recommendations were returned for this request.
+          {insufficientDataReason ||
+            "No evidence-backed recommendations were returned for this request."}
         </p>
       ) : null}
 

@@ -75,7 +75,9 @@ export type CampaignAnalysisCandidate = {
   entity: MarketingEntity;
   finding: string;
   evidence: MarketingEvidence[];
+  requiredEvidence: MarketingEvidence[];
   actionDirection: string;
+  expectedImpact: string;
 };
 
 export type PreparedCampaignPerformanceAnalysis = {
@@ -108,7 +110,17 @@ export type PreparedCampaignPerformanceAnalysis = {
 };
 
 export type CampaignAnalysisResult =
-  | { success: true; insights: MarketingInsight[] }
+  | {
+      success: true;
+      status: "grounded_insights";
+      insights: MarketingInsight[];
+    }
+  | {
+      success: true;
+      status: "insufficient_data";
+      insights: [];
+      reason: string;
+    }
   | { success: false; insights: []; error: string };
 
 type InsightGenerator = (
@@ -185,6 +197,42 @@ function metricEvidence(
   return [...evidence, ...additionalEvidence].slice(0, 8);
 }
 
+const REQUIRED_EVIDENCE_METRICS: Record<
+  CampaignAnalysisCategory,
+  readonly string[]
+> = {
+  high_cpa: ["CPA", "Conversions"],
+  low_conversion_rate: ["Conversion rate", "Clicks"],
+  high_spend_low_conversions: ["Spend", "Conversions"],
+  strong_performer: ["CPA", "ROAS", "Conversions"],
+  budget_opportunity: ["CPA", "ROAS", "Conversions"],
+  geographic_opportunity: ["CPA", "ROAS", "Clicks"],
+  device_performance_difference: [],
+  search_term_waste: ["Spend", "Conversions", "Clicks"],
+  negative_keyword_opportunity: ["Spend", "Conversions", "Clicks"],
+};
+
+const EXPECTED_IMPACTS: Record<CampaignAnalysisCategory, string> = {
+  high_cpa:
+    "Improve cost efficiency while monitoring measured conversion volume.",
+  low_conversion_rate:
+    "Improve conversion efficiency if testing confirms a beneficial change.",
+  high_spend_low_conversions:
+    "Reduce measured spend inefficiency while monitoring conversion volume.",
+  strong_performer:
+    "Preserve efficient performance and learn whether it holds at greater scale.",
+  budget_opportunity:
+    "Increase conversion volume only if marginal CPA and ROAS remain efficient.",
+  geographic_opportunity:
+    "Improve account efficiency if the location sustains its measured performance with additional allocation.",
+  device_performance_difference:
+    "Improve conversion efficiency if a controlled test confirms the device-specific change.",
+  search_term_waste:
+    "Reduce inefficient query spend while monitoring measured conversions.",
+  negative_keyword_opportunity:
+    "Reduce irrelevant-query spend if lead-quality review confirms the query should be excluded.",
+};
+
 function candidate(
   category: CampaignAnalysisCategory,
   severity: CampaignAnalysisCandidate["severity"],
@@ -195,14 +243,24 @@ function candidate(
   actionDirection: string,
   additionalEvidence: readonly MarketingEvidence[] = [],
 ): CampaignAnalysisCandidate {
+  const evidence = metricEvidence(
+    metrics,
+    evidenceContext,
+    additionalEvidence,
+  );
+
   return {
     id: `${category}:${entity.type}:${entity.id ?? entity.name}`,
     category,
     severity,
     entity,
     finding,
-    evidence: metricEvidence(metrics, evidenceContext, additionalEvidence),
+    evidence,
+    requiredEvidence: evidence.filter((item) =>
+      REQUIRED_EVIDENCE_METRICS[category].includes(item.metric),
+    ),
     actionDirection,
+    expectedImpact: EXPECTED_IMPACTS[category],
   };
 }
 
@@ -486,8 +544,35 @@ export function prepareCampaignPerformanceAnalysis(
             context: "Sample size for the lower-performing device.",
           },
         ],
+        requiredEvidence: [
+          {
+            metric: `${best.device} conversion rate`,
+            value: best.metrics.conversionRate,
+            unit: "percent",
+            context: `${best.device} performance in ${best.campaignName}.`,
+          },
+          {
+            metric: `${worst.device} conversion rate`,
+            value: worst.metrics.conversionRate,
+            unit: "percent",
+            context: `${worst.device} performance in ${worst.campaignName}.`,
+          },
+          {
+            metric: `${best.device} clicks`,
+            value: best.metrics.clicks,
+            unit: "count",
+            context: "Sample size for the better-performing device.",
+          },
+          {
+            metric: `${worst.device} clicks`,
+            value: worst.metrics.clicks,
+            unit: "count",
+            context: "Sample size for the lower-performing device.",
+          },
+        ],
         actionDirection:
           "Review device-specific experience and test device-aware bid or creative changes.",
+        expectedImpact: EXPECTED_IMPACTS.device_performance_difference,
       },
     );
   }
@@ -610,25 +695,77 @@ export function buildCampaignAnalysisPrompt(
     `User request: ${userRequest}`,
     "Analyze the prepared Google Ads performance data below.",
     "The application has already calculated all basic metrics and applied the supplied adjustable thresholds.",
-    "Only recommend opportunities represented in candidates. You may combine related candidates for the same entity.",
-    "Copy evidence metric, value, unit, and context exactly from candidate evidence; do not calculate, estimate, or invent evidence.",
-    "Use the candidate severity exactly and turn its finding and actionDirection into a concrete interpretation and recommendation.",
-    "Do not infer device or other dimension findings when dimensionAvailability is false.",
-    "Return an empty insights array if no candidate is supported. Prioritize the most actionable findings and return no more than five insights.",
+    "Deterministic candidates and their evidence are the only source of truth. Select candidates; do not create, combine, or infer new findings.",
+    "For each selected candidate, copy entity, severity, finding into problemOpportunity, actionDirection into recommendedAction, expectedImpact, and evidence fields exactly.",
+    "Include every item in requiredEvidence. You may include other evidence only when it appears in that same candidate's evidence array.",
+    "Never invent a metric, entity, campaign, device, geography, keyword, search term, value, comparison, performance problem, opportunity, recommendation, or expected impact.",
+    "Never change supplied metric values or perform calculations. CTR, CPC, conversion rate, CPA, ROAS, spend, conversions, and all other derived values come only from the application.",
+    "Never state or imply an unproved cause. In particular, do not claim landing-page quality, user intent, competitor behavior, audience fatigue, or any other fact absent from the candidate.",
+    "Recommendations may call for investigation or testing only when the candidate's actionDirection does so; do not turn a hypothesis into an observation.",
+    "Do not infer any dimension finding when its dimensionAvailability value is false.",
+    "If no candidate supports the request, return an empty insights array. Prioritize the most actionable supported candidates and return no more than five insights.",
     JSON.stringify(analysis),
   ].join("\n\n");
 }
 
-function evidenceMatches(
+function evidenceValueMatches(
+  supplied: MarketingEvidence,
+  calculated: MarketingEvidence,
+): boolean {
+  if (supplied.unit === "count") {
+    return Math.abs(supplied.value - calculated.value) <= 1e-9;
+  }
+
+  const roundingTolerance = 0.005000001;
+  const floatingPointTolerance = Math.abs(calculated.value) * 1e-9;
+  return (
+    Math.abs(supplied.value - calculated.value) <=
+    Math.max(roundingTolerance, floatingPointTolerance)
+  );
+}
+
+function matchingCalculatedEvidence(
   evidence: MarketingEvidence,
   allowed: readonly MarketingEvidence[],
-): boolean {
-  return allowed.some(
+): MarketingEvidence | undefined {
+  return allowed.find(
     (item) =>
       item.metric === evidence.metric &&
       item.unit === evidence.unit &&
       item.context === evidence.context &&
-      Math.abs(item.value - evidence.value) < 1e-9,
+      evidenceValueMatches(evidence, item),
+  );
+}
+
+function entityMatches(
+  left: MarketingEntity,
+  right: MarketingEntity,
+): boolean {
+  return (
+    left.type === right.type &&
+    left.id === right.id &&
+    left.name === right.name
+  );
+}
+
+function insightMatchesCandidate(
+  insight: MarketingInsight,
+  candidate: CampaignAnalysisCandidate,
+): boolean {
+  return (
+    entityMatches(insight.affectedEntity, candidate.entity) &&
+    insight.severity === candidate.severity &&
+    insight.problemOpportunity === candidate.finding &&
+    insight.recommendedAction === candidate.actionDirection &&
+    insight.expectedImpact === candidate.expectedImpact &&
+    insight.evidence.every((item) =>
+      Boolean(matchingCalculatedEvidence(item, candidate.evidence)),
+    ) &&
+    candidate.requiredEvidence.every((required) =>
+      insight.evidence.some((item) =>
+        Boolean(matchingCalculatedEvidence(item, [required])),
+      ),
+    )
   );
 }
 
@@ -636,37 +773,60 @@ export function validateCampaignAnalysisResponse(
   value: unknown,
   analysis: PreparedCampaignPerformanceAnalysis,
 ): CampaignAnalysisResult {
+  if (analysis.candidates.length === 0) {
+    return {
+      success: true,
+      status: "insufficient_data",
+      insights: [],
+      reason:
+        "The supplied data does not meet the deterministic evidence thresholds for a recommendation.",
+    };
+  }
+
   const validation = validateMarketingInsights(value);
   if (!validation.success) return validation;
 
-  for (const insight of validation.insights) {
-    const matchingCandidates = analysis.candidates.filter(
-      (item) =>
-        item.entity.type === insight.affectedEntity.type &&
-        item.entity.id === insight.affectedEntity.id &&
-        item.entity.name === insight.affectedEntity.name,
-    );
-    const allowedEvidence = matchingCandidates.flatMap((item) => item.evidence);
+  if (validation.insights.length === 0) {
+    return {
+      success: true,
+      status: "insufficient_data",
+      insights: [],
+      reason:
+        "No deterministic candidate supported a recommendation for this request.",
+    };
+  }
 
-    if (
-      matchingCandidates.length === 0 ||
-      !matchingCandidates.some(
-        (candidate) => candidate.severity === insight.severity,
-      ) ||
-      insight.evidence.some(
-        (item) => !evidenceMatches(item, allowedEvidence),
-      )
-    ) {
+  const groundedInsights: MarketingInsight[] = [];
+
+  for (const insight of validation.insights) {
+    const matchingCandidate = analysis.candidates.find((candidate) =>
+      insightMatchesCandidate(insight, candidate),
+    );
+
+    if (!matchingCandidate) {
       return {
         success: false,
         insights: [],
         error:
-          "The AI response included an unsupported entity, severity, or evidence value.",
+          "The AI response included a finding, recommendation, entity, metric, value, or explanation that was not supported by one deterministic candidate.",
       };
     }
+
+    groundedInsights.push({
+      ...insight,
+      affectedEntity: matchingCandidate.entity,
+      evidence: insight.evidence.map(
+        (item) =>
+          matchingCalculatedEvidence(item, matchingCandidate.evidence) ?? item,
+      ),
+    });
   }
 
-  return validation;
+  return {
+    success: true,
+    status: "grounded_insights",
+    insights: groundedInsights,
+  };
 }
 
 export async function analyzeCampaignPerformance(
@@ -674,6 +834,10 @@ export async function analyzeCampaignPerformance(
   userRequest: string,
   generate: InsightGenerator,
 ): Promise<CampaignAnalysisResult> {
+  if (analysis.candidates.length === 0) {
+    return validateCampaignAnalysisResponse({ insights: [] }, analysis);
+  }
+
   try {
     const value = await generate(
       buildCampaignAnalysisPrompt(analysis, userRequest),
