@@ -6,19 +6,26 @@ import type { MarketingInsight } from "@/lib/marketing-insights";
 type AiResponse = {
   insights?: MarketingInsight[];
   error?: string;
+  analysis?: {
+    candidateCount: number;
+    candidateCategories: string[];
+    unavailableDimensions: string[];
+  };
 };
 
 export default function AiConnectionTest() {
   const [prompt, setPrompt] = useState(
-    "Briefly summarize this account's performance and mention one notable campaign difference.",
+    "Analyze this account and recommend the most important campaign optimizations.",
   );
   const [insights, setInsights] = useState<MarketingInsight[]>([]);
+  const [analysis, setAnalysis] = useState<AiResponse["analysis"]>();
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setInsights([]);
+    setAnalysis(undefined);
     setError("");
     setIsLoading(true);
 
@@ -36,6 +43,7 @@ export default function AiConnectionTest() {
       }
 
       setInsights(result.insights);
+      setAnalysis(result.analysis);
     } catch {
       setError("Could not reach the Crush AI endpoint. Is the local server running?");
     } finally {
@@ -45,10 +53,10 @@ export default function AiConnectionTest() {
 
   return (
     <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6">
-      <h2 className="text-lg font-semibold">AI connection test</h2>
+      <h2 className="text-lg font-semibold">AI campaign-performance analyzer</h2>
       <p className="mt-1 text-sm text-zinc-600">
-        Send a small account summary and two campaign samples to the server-side
-        LLM connection.
+        Analyze campaign, geography, keyword, and search-term performance using
+        pre-calculated metrics and evidence-checked recommendations.
       </p>
 
       <form className="mt-4" onSubmit={handleSubmit}>
@@ -68,9 +76,26 @@ export default function AiConnectionTest() {
           disabled={isLoading || !prompt.trim()}
           type="submit"
         >
-          {isLoading ? "Connecting..." : "Test AI connection"}
+          {isLoading ? "Analyzing..." : "Analyze sample account"}
         </button>
       </form>
+
+      {analysis ? (
+        <div
+          aria-live="polite"
+          className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950"
+        >
+          <p>
+            Evaluated {analysis.candidateCount} supported candidates across{" "}
+            {analysis.candidateCategories.length} detection categories.
+          </p>
+          {analysis.unavailableDimensions.length > 0 ? (
+            <p className="mt-1 text-blue-800">
+              No sample data: {analysis.unavailableDimensions.join(", ")}.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {insights.length > 0 ? (
         <div aria-live="polite" className="mt-4 grid gap-4">
@@ -111,6 +136,12 @@ export default function AiConnectionTest() {
             </article>
           ))}
         </div>
+      ) : null}
+
+      {analysis && insights.length === 0 && !error ? (
+        <p className="mt-4 text-sm text-zinc-600">
+          No evidence-backed recommendations were returned for this request.
+        </p>
       ) : null}
 
       {error ? (

@@ -14,6 +14,7 @@ export const MARKETING_ENTITY_TYPES = [
   "keyword",
   "search_term",
   "geography",
+  "device",
   "conversion_action",
 ] as const;
 

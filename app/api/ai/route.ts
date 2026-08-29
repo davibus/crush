@@ -3,20 +3,31 @@ import "server-only";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 
+import geographyData from "@/data/google-ads-geography.json";
+import keywordData from "@/data/google-ads-keywords.json";
 import googleAdsData from "@/data/google-ads-sample.json";
+import searchTermData from "@/data/google-ads-search-terms.json";
 import {
-  aggregateGoogleAdsMetrics,
-  calculateGoogleAdsMetrics,
+  buildCampaignAnalysisPrompt,
+  prepareCampaignPerformanceAnalysis,
+  validateCampaignAnalysisResponse,
+} from "@/lib/campaign-performance-analyzer";
+import {
+  type GoogleAdsGeography,
+  type GoogleAdsKeyword,
   type GoogleAdsSampleData,
+  type GoogleAdsSearchTerm,
 } from "@/lib/google-ads";
-import {
-  marketingInsightsResponseSchema,
-  validateMarketingInsights,
-} from "@/lib/marketing-insights";
+import { marketingInsightsResponseSchema } from "@/lib/marketing-insights";
 
 const MODEL = "gpt-4o-mini";
 const MAX_PROMPT_LENGTH = 500;
-const data = googleAdsData as GoogleAdsSampleData;
+const analysis = prepareCampaignPerformanceAnalysis({
+  campaignData: googleAdsData as GoogleAdsSampleData,
+  geographies: geographyData.locations as GoogleAdsGeography[],
+  keywords: keywordData.keywords as GoogleAdsKeyword[],
+  searchTerms: searchTermData.searchTerms as GoogleAdsSearchTerm[],
+});
 
 type AiRequest = {
   prompt?: unknown;
@@ -26,24 +37,15 @@ function errorResponse(error: string, status: number) {
   return Response.json({ insights: [], error }, { status });
 }
 
-function representativeMarketingData() {
-  const totals = aggregateGoogleAdsMetrics(
-    data.campaigns.map((campaign) => campaign.metrics),
-  );
-
+function analysisSummary() {
   return {
-    account: {
-      name: data.account.name,
-      currency: data.account.currency,
-    },
-    accountMetrics: totals,
-    campaignSample: data.campaigns.slice(0, 2).map((campaign) => ({
-      name: campaign.name,
-      status: campaign.status,
-      channel: campaign.channel,
-      dailyBudget: campaign.dailyBudget,
-      metrics: calculateGoogleAdsMetrics(campaign.metrics),
-    })),
+    candidateCount: analysis.candidates.length,
+    candidateCategories: [
+      ...new Set(analysis.candidates.map((item) => item.category)),
+    ],
+    unavailableDimensions: Object.entries(analysis.dimensionAvailability)
+      .filter(([, available]) => !available)
+      .map(([dimension]) => dimension),
   };
 }
 
@@ -81,8 +83,8 @@ export async function POST(request: Request) {
     const response = await openai.responses.parse({
       model: MODEL,
       instructions:
-        "You are a paid-media analyst. Return actionable marketing insights using only the supplied Google Ads data. Every insight must identify a problem or opportunity, use evidence from the supplied metrics, recommend an action, estimate the expected impact without inventing unsupported numbers, and express confidence from 0 (no confidence) to 1 (complete confidence). Return no more than five insights. Return an empty insights array when the data does not support an insight.",
-      input: `${prompt}\n\nRepresentative Google Ads data:\n${JSON.stringify(representativeMarketingData())}`,
+        "You are a paid-media analyst. Return actionable marketing insights using only the prepared Google Ads analysis. Follow its candidate and evidence constraints exactly. Every insight must identify a problem or opportunity, recommend a specific action, describe the expected directional impact without inventing numbers, and express confidence from 0 to 1. Do not fabricate opportunities. Return no more than five insights.",
+      input: buildCampaignAnalysisPrompt(analysis, prompt),
       text: {
         format: zodTextFormat(
           marketingInsightsResponseSchema,
@@ -92,14 +94,31 @@ export async function POST(request: Request) {
       max_output_tokens: 1200,
       store: false,
     });
-    const validation = validateMarketingInsights(response.output_parsed);
+    const validation = validateCampaignAnalysisResponse(
+      response.output_parsed,
+      analysis,
+    );
 
     if (!validation.success) {
       return errorResponse(validation.error, 502);
     }
 
-    return Response.json({ insights: validation.insights });
+    return Response.json({
+      insights: validation.insights,
+      analysis: analysisSummary(),
+    });
   } catch (error) {
+    if (error instanceof OpenAI.APIError) {
+      console.error("OpenAI API request failed", {
+        status: error.status,
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        requestId: error.requestID,
+        fullError: error,
+      });
+    }
+
     if (error instanceof OpenAI.RateLimitError) {
       if (error.code === "insufficient_quota") {
         return errorResponse(

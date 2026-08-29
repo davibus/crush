@@ -39,6 +39,34 @@ export type GoogleAdsSampleData = {
   campaigns: GoogleAdsCampaign[];
 };
 
+export type GoogleAdsDimensionMetrics = GoogleAdsMetrics & {
+  id: string;
+  campaignId: string;
+  campaignName: string;
+};
+
+export type GoogleAdsGeography = GoogleAdsDimensionMetrics & {
+  location: string;
+};
+
+export type GoogleAdsKeyword = GoogleAdsDimensionMetrics & {
+  adGroup: string;
+  keyword: string;
+  matchType: "EXACT" | "PHRASE" | "BROAD";
+  status: "ENABLED" | "PAUSED";
+};
+
+export type GoogleAdsSearchTerm = GoogleAdsDimensionMetrics & {
+  adGroup: string;
+  searchTerm: string;
+  matchedKeyword: string;
+  matchType: "EXACT" | "PHRASE" | "BROAD";
+};
+
+export type GoogleAdsDevice = GoogleAdsDimensionMetrics & {
+  device: string;
+};
+
 export function getCtr(metrics: GoogleAdsMetrics) {
   if (metrics.impressions === 0) return 0;
 
