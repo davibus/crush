@@ -67,6 +67,15 @@ export type GoogleAdsDevice = GoogleAdsDimensionMetrics & {
   device: string;
 };
 
+export type GoogleAdsConversion = {
+  id: string;
+  campaignId: string;
+  campaignName: string;
+  conversionAction: string;
+  conversions: number;
+  conversionValue: number;
+};
+
 export function getCtr(metrics: GoogleAdsMetrics) {
   if (metrics.impressions === 0) return 0;
 

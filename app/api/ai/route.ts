@@ -3,6 +3,7 @@ import "server-only";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 
+import conversionData from "@/data/google-ads-conversions.json";
 import geographyData from "@/data/google-ads-geography.json";
 import keywordData from "@/data/google-ads-keywords.json";
 import googleAdsData from "@/data/google-ads-sample.json";
@@ -13,6 +14,7 @@ import {
   validateCampaignAnalysisResponse,
 } from "@/lib/campaign-performance-analyzer";
 import {
+  type GoogleAdsConversion,
   type GoogleAdsGeography,
   type GoogleAdsKeyword,
   type GoogleAdsSampleData,
@@ -24,6 +26,7 @@ const MODEL = "gpt-4o-mini";
 const MAX_PROMPT_LENGTH = 500;
 const analysis = prepareCampaignPerformanceAnalysis({
   campaignData: googleAdsData as GoogleAdsSampleData,
+  conversions: conversionData.conversions as GoogleAdsConversion[],
   geographies: geographyData.locations as GoogleAdsGeography[],
   keywords: keywordData.keywords as GoogleAdsKeyword[],
   searchTerms: searchTermData.searchTerms as GoogleAdsSearchTerm[],

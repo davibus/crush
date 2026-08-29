@@ -55,8 +55,9 @@ export default function AiConnectionTest() {
     <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6">
       <h2 className="text-lg font-semibold">AI campaign-performance analyzer</h2>
       <p className="mt-1 text-sm text-zinc-600">
-        Analyze campaign, geography, keyword, and search-term performance using
-        pre-calculated metrics and evidence-checked recommendations.
+        Analyze campaign, geography, keyword, search-term, and conversion-action
+        performance using pre-calculated metrics and evidence-checked
+        recommendations.
       </p>
 
       <form className="mt-4" onSubmit={handleSubmit}>

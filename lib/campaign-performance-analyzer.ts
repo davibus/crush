@@ -2,6 +2,7 @@ import {
   aggregateGoogleAdsMetrics,
   calculateGoogleAdsMetrics,
   type CalculatedGoogleAdsMetrics,
+  type GoogleAdsConversion,
   type GoogleAdsDevice,
   type GoogleAdsGeography,
   type GoogleAdsKeyword,
@@ -58,6 +59,7 @@ export type CampaignAnalysisThresholds = {
 
 export type CampaignPerformanceInput = {
   campaignData: GoogleAdsSampleData;
+  conversions?: readonly GoogleAdsConversion[];
   geographies?: readonly GoogleAdsGeography[];
   devices?: readonly GoogleAdsDevice[];
   keywords?: readonly GoogleAdsKeyword[];
@@ -86,6 +88,7 @@ export type PreparedCampaignPerformanceAnalysis = {
   thresholds: CampaignAnalysisThresholds;
   dimensionAvailability: {
     campaigns: true;
+    conversions: boolean;
     geographies: boolean;
     devices: boolean;
     keywords: boolean;
@@ -96,6 +99,7 @@ export type PreparedCampaignPerformanceAnalysis = {
       Omit<GoogleAdsSampleData["campaigns"][number], "metrics">
     >
   >;
+  conversions: GoogleAdsConversion[];
   geographies: Array<CalculatedEntity<Omit<GoogleAdsGeography, keyof GoogleAdsMetrics>>>;
   devices: Array<CalculatedEntity<Omit<GoogleAdsDevice, keyof GoogleAdsMetrics>>>;
   keywords: Array<CalculatedEntity<Omit<GoogleAdsKeyword, keyof GoogleAdsMetrics>>>;
@@ -151,6 +155,7 @@ function calculateRows<T extends GoogleAdsMetrics>(
 function metricEvidence(
   metrics: CalculatedGoogleAdsMetrics,
   context: string,
+  additionalEvidence: readonly MarketingEvidence[] = [],
 ): MarketingEvidence[] {
   const evidence: MarketingEvidence[] = [
     { metric: "Spend", value: metrics.spend, unit: "currency", context },
@@ -175,20 +180,9 @@ function metricEvidence(
     },
     { metric: "ROAS", value: metrics.roas, unit: "ratio", context },
     { metric: "Clicks", value: metrics.clicks, unit: "count", context },
-    {
-      metric: "Impressions",
-      value: metrics.impressions,
-      unit: "count",
-      context,
-    },
-    { metric: "CTR", value: metrics.ctr, unit: "percent", context },
   );
 
-  if (evidence.length < 8) {
-    evidence.push({ metric: "CPC", value: metrics.cpc, unit: "currency", context });
-  }
-
-  return evidence;
+  return [...evidence, ...additionalEvidence].slice(0, 8);
 }
 
 function candidate(
@@ -199,6 +193,7 @@ function candidate(
   metrics: CalculatedGoogleAdsMetrics,
   evidenceContext: string,
   actionDirection: string,
+  additionalEvidence: readonly MarketingEvidence[] = [],
 ): CampaignAnalysisCandidate {
   return {
     id: `${category}:${entity.type}:${entity.id ?? entity.name}`,
@@ -206,13 +201,21 @@ function candidate(
     severity,
     entity,
     finding,
-    evidence: metricEvidence(metrics, evidenceContext),
+    evidence: metricEvidence(metrics, evidenceContext, additionalEvidence),
     actionDirection,
   };
 }
 
 function positive(value: number): boolean {
   return Number.isFinite(value) && value > 0;
+}
+
+function keywordLookupKey(
+  campaignId: string,
+  adGroup: string,
+  keyword: string,
+): string {
+  return `${campaignId}\u0000${adGroup}\u0000${keyword}`;
 }
 
 export function prepareCampaignPerformanceAnalysis(
@@ -242,11 +245,36 @@ export function prepareCampaignPerformanceAnalysis(
     dailyBudget: item.dailyBudget,
     metrics: calculateGoogleAdsMetrics(item.metrics),
   }));
+  const conversions = [...(input.conversions ?? [])];
   const geographies = calculateRows(input.geographies);
   const devices = calculateRows(input.devices);
   const keywords = calculateRows(input.keywords);
   const searchTerms = calculateRows(input.searchTerms);
   const candidates: CampaignAnalysisCandidate[] = [];
+  const conversionEvidenceByCampaign = new Map<string, MarketingEvidence[]>();
+
+  for (const conversion of conversions) {
+    if (!positive(conversion.conversions)) continue;
+
+    const current = conversionEvidenceByCampaign.get(conversion.campaignId);
+    if (current && current[0]?.value >= conversion.conversions) continue;
+
+    const context = `Largest measured conversion action for ${conversion.campaignName}.`;
+    conversionEvidenceByCampaign.set(conversion.campaignId, [
+      {
+        metric: `${conversion.conversionAction} conversions`,
+        value: conversion.conversions,
+        unit: "count",
+        context,
+      },
+      {
+        metric: `${conversion.conversionAction} conversion value`,
+        value: conversion.conversionValue,
+        unit: "currency",
+        context,
+      },
+    ]);
+  }
 
   for (const campaign of campaigns) {
     const entity: MarketingEntity = {
@@ -259,6 +287,8 @@ export function prepareCampaignPerformanceAnalysis(
     const enoughConversions =
       campaign.metrics.conversions >= thresholds.minimumCampaignConversions;
     const accountComparison = `Campaign metrics; account CPA is ${accountMetrics.cpa.toFixed(2)}, conversion rate is ${accountMetrics.conversionRate.toFixed(2)}%, and ROAS is ${accountMetrics.roas.toFixed(2)}.`;
+    const conversionEvidence =
+      conversionEvidenceByCampaign.get(campaign.id) ?? [];
 
     if (
       enoughConversions &&
@@ -275,6 +305,7 @@ export function prepareCampaignPerformanceAnalysis(
           campaign.metrics,
           accountComparison,
           "Reduce inefficient targeting or bids before adding spend.",
+          conversionEvidence,
         ),
       );
     }
@@ -295,6 +326,7 @@ export function prepareCampaignPerformanceAnalysis(
           campaign.metrics,
           accountComparison,
           "Review query intent, ads, and landing-page alignment.",
+          conversionEvidence,
         ),
       );
     }
@@ -317,6 +349,7 @@ export function prepareCampaignPerformanceAnalysis(
           campaign.metrics,
           `Campaign metrics; average campaign spend is ${averageCampaignSpend.toFixed(2)} and average campaign conversions are ${averageCampaignConversions.toFixed(2)}.`,
           "Audit traffic quality and stop or constrain waste until conversion volume improves.",
+          conversionEvidence,
         ),
       );
     }
@@ -340,6 +373,7 @@ export function prepareCampaignPerformanceAnalysis(
           campaign.metrics,
           accountComparison,
           "Protect this campaign and test whether its successful approach can scale.",
+          conversionEvidence,
         ),
       );
     }
@@ -359,6 +393,7 @@ export function prepareCampaignPerformanceAnalysis(
           campaign.metrics,
           `${accountComparison} Daily budget is ${campaign.dailyBudget.toFixed(2)}.`,
           "Test a measured budget reallocation while monitoring marginal CPA and ROAS.",
+          conversionEvidence,
         ),
       );
     }
@@ -410,9 +445,10 @@ export function prepareCampaignPerformanceAnalysis(
     if (
       !best ||
       !worst ||
-      !positive(worst.metrics.conversionRate) ||
-      best.metrics.conversionRate <
-        worst.metrics.conversionRate * thresholds.deviceConversionRateGapRatio
+      !positive(best.metrics.conversionRate) ||
+      (positive(worst.metrics.conversionRate) &&
+        best.metrics.conversionRate <
+          worst.metrics.conversionRate * thresholds.deviceConversionRateGapRatio)
     ) {
       continue;
     }
@@ -457,6 +493,16 @@ export function prepareCampaignPerformanceAnalysis(
   }
 
   const campaignsById = new Map(campaigns.map((item) => [item.id, item]));
+  const keywordsByIdentity = new Map(
+    keywords.map((keyword) => [
+      keywordLookupKey(
+        keyword.campaignId,
+        keyword.adGroup,
+        keyword.keyword,
+      ),
+      keyword,
+    ]),
+  );
   for (const searchTerm of searchTerms) {
     const parent = campaignsById.get(searchTerm.campaignId);
     if (!parent || searchTerm.metrics.clicks < thresholds.minimumSearchTermClicks) {
@@ -481,7 +527,17 @@ export function prepareCampaignPerformanceAnalysis(
           thresholds.searchTermConversionRateToCampaignRatio;
 
     if (meaningfulSpend && (zeroConversionWaste || inefficientCpa || inefficientConversionRate)) {
-      const context = `Search-term metrics in ${searchTerm.campaignName}; campaign CPA is ${parent.metrics.cpa.toFixed(2)} and conversion rate is ${parent.metrics.conversionRate.toFixed(2)}%.`;
+      const matchedKeyword = keywordsByIdentity.get(
+        keywordLookupKey(
+          searchTerm.campaignId,
+          searchTerm.adGroup,
+          searchTerm.matchedKeyword,
+        ),
+      );
+      const keywordContext = matchedKeyword
+        ? ` Matched keyword "${matchedKeyword.keyword}" is ${matchedKeyword.status.toLowerCase()} ${matchedKeyword.matchType.toLowerCase()} match.`
+        : ` Reported matched keyword is "${searchTerm.matchedKeyword}" (${searchTerm.matchType.toLowerCase()} match).`;
+      const context = `Search-term metrics in ${searchTerm.campaignName}; campaign CPA is ${parent.metrics.cpa.toFixed(2)} and conversion rate is ${parent.metrics.conversionRate.toFixed(2)}%.${keywordContext}`;
       candidates.push(
         candidate(
           "search_term_waste",
@@ -500,6 +556,7 @@ export function prepareCampaignPerformanceAnalysis(
 
       if (
         searchTerm.matchType !== "EXACT" &&
+        (!matchedKeyword || matchedKeyword.status === "ENABLED") &&
         searchTerm.metrics.conversions <=
           thresholds.maximumNegativeKeywordConversions
       ) {
@@ -529,12 +586,14 @@ export function prepareCampaignPerformanceAnalysis(
     thresholds,
     dimensionAvailability: {
       campaigns: true,
+      conversions: conversions.length > 0,
       geographies: geographies.length > 0,
       devices: devices.length > 0,
       keywords: keywords.length > 0,
       searchTerms: searchTerms.length > 0,
     },
     campaigns,
+    conversions,
     geographies,
     devices,
     keywords,
@@ -552,7 +611,8 @@ export function buildCampaignAnalysisPrompt(
     "Analyze the prepared Google Ads performance data below.",
     "The application has already calculated all basic metrics and applied the supplied adjustable thresholds.",
     "Only recommend opportunities represented in candidates. You may combine related candidates for the same entity.",
-    "Copy numeric evidence metric, value, and unit exactly from candidate evidence; do not calculate, estimate, or invent evidence.",
+    "Copy evidence metric, value, unit, and context exactly from candidate evidence; do not calculate, estimate, or invent evidence.",
+    "Use the candidate severity exactly and turn its finding and actionDirection into a concrete interpretation and recommendation.",
     "Do not infer device or other dimension findings when dimensionAvailability is false.",
     "Return an empty insights array if no candidate is supported. Prioritize the most actionable findings and return no more than five insights.",
     JSON.stringify(analysis),
@@ -567,6 +627,7 @@ function evidenceMatches(
     (item) =>
       item.metric === evidence.metric &&
       item.unit === evidence.unit &&
+      item.context === evidence.context &&
       Math.abs(item.value - evidence.value) < 1e-9,
   );
 }
@@ -589,6 +650,9 @@ export function validateCampaignAnalysisResponse(
 
     if (
       matchingCandidates.length === 0 ||
+      !matchingCandidates.some(
+        (candidate) => candidate.severity === insight.severity,
+      ) ||
       insight.evidence.some(
         (item) => !evidenceMatches(item, allowedEvidence),
       )
@@ -597,7 +661,7 @@ export function validateCampaignAnalysisResponse(
         success: false,
         insights: [],
         error:
-          "The AI response included an unsupported entity or evidence value.",
+          "The AI response included an unsupported entity, severity, or evidence value.",
       };
     }
   }
