@@ -1,4 +1,5 @@
 import googleAdsData from "@/data/google-ads-sample.json";
+import AiConnectionTest from "@/app/ai-connection-test";
 import {
   aggregateGoogleAdsMetrics,
   getCpa,
@@ -118,6 +119,8 @@ export default function Home() {
             </table>
           </div>
         </section>
+
+        <AiConnectionTest />
       </div>
     </main>
   );

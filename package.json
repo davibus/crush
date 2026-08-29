@@ -7,13 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "verify:metrics": "node scripts/verify-google-ads-metrics.mjs"
+    "verify:metrics": "node scripts/verify-google-ads-metrics.mjs",
+    "verify:insights": "node --experimental-strip-types scripts/verify-marketing-insights.ts"
   },
   "dependencies": {
     "next": "16.3.3",
+    "openai": "^7.8.0",
     "papaparse": "^5.7.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
