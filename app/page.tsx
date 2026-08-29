@@ -1,5 +1,7 @@
 import googleAdsData from "@/data/google-ads-sample.json";
 import AiConnectionTest from "@/app/ai-connection-test";
+import KpiOverview from "@/app/components/kpi-overview";
+import { hasUsableDashboardData } from "@/lib/dashboard-kpis";
 import {
   aggregateGoogleAdsMetrics,
   getCpa,
@@ -17,37 +19,25 @@ export default function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-zinc-50 p-8 text-zinc-900">
+    <main className="min-h-screen bg-zinc-50 p-4 text-zinc-900 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Crush</h1>
           <p className="mt-2 text-zinc-600">{data.account.name}</p>
         </div>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-4">
-          <MetricCard
-            label="Spend"
-            value={`$${totals.spend.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`}
+        <div className="mb-8">
+          <KpiOverview
+            currency={data.account.currency}
+            metrics={
+              hasUsableDashboardData(
+                data.campaigns.map((campaign) => campaign.metrics),
+              )
+                ? totals
+                : null
+            }
           />
-
-          <MetricCard
-            label="Conversions"
-            value={totals.conversions.toLocaleString()}
-          />
-
-          <MetricCard
-            label="CPA"
-            value={`$${totals.cpa.toFixed(2)}`}
-          />
-
-          <MetricCard
-            label="ROAS"
-            value={`${totals.roas.toFixed(2)}x`}
-          />
-        </section>
+        </div>
 
         <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
           <div className="border-b border-zinc-200 px-6 py-4">
@@ -123,20 +113,5 @@ export default function Home() {
         <AiConnectionTest />
       </div>
     </main>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5">
-      <p className="text-sm text-zinc-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-    </div>
   );
 }

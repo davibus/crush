@@ -9,6 +9,7 @@
     "lint": "eslint",
     "verify:analyzer": "node --experimental-strip-types scripts/verify-campaign-performance-analyzer.ts",
     "verify:grounding": "node --experimental-strip-types scripts/verify-grounded-marketing-insights.ts",
+    "verify:dashboard": "node --experimental-strip-types scripts/verify-dashboard-kpis.ts",
     "verify:metrics": "node scripts/verify-google-ads-metrics.mjs",
     "verify:insights": "node --experimental-strip-types scripts/verify-marketing-insights.ts"
   },
