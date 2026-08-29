@@ -697,7 +697,7 @@ export function buildCampaignAnalysisPrompt(
     "The application has already calculated all basic metrics and applied the supplied adjustable thresholds.",
     "Deterministic candidates and their evidence are the only source of truth. Select candidates; do not create, combine, or infer new findings.",
     "For each selected candidate, copy entity, severity, finding into problemOpportunity, actionDirection into recommendedAction, expectedImpact, and evidence fields exactly.",
-    "Include every item in requiredEvidence. You may include other evidence only when it appears in that same candidate's evidence array.",
+    "Include every item in requiredEvidence and only those items. Do not include additional evidence from the candidate's evidence array.",
     "Never invent a metric, entity, campaign, device, geography, keyword, search term, value, comparison, performance problem, opportunity, recommendation, or expected impact.",
     "Never change supplied metric values or perform calculations. CTR, CPC, conversion rate, CPA, ROAS, spend, conversions, and all other derived values come only from the application.",
     "Never state or imply an unproved cause. In particular, do not claim landing-page quality, user intent, competitor behavior, audience fatigue, or any other fact absent from the candidate.",

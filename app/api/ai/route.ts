@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 
@@ -21,9 +22,14 @@ import {
   type GoogleAdsSearchTerm,
 } from "@/lib/google-ads";
 import { marketingInsightsResponseSchema } from "@/lib/marketing-insights";
+import {
+  extractOpenAIStructuredResponse,
+  type OpenAIStructuredResponse,
+} from "@/lib/openai-structured-response";
 
 const MODEL = "gpt-4o-mini";
 const MAX_PROMPT_LENGTH = 500;
+const MAX_OUTPUT_TOKENS = 5000;
 const analysis = prepareCampaignPerformanceAnalysis({
   campaignData: googleAdsData as GoogleAdsSampleData,
   conversions: conversionData.conversions as GoogleAdsConversion[],
@@ -38,6 +44,36 @@ type AiRequest = {
 
 function errorResponse(error: string, status: number) {
   return Response.json({ insights: [], error }, { status });
+}
+
+function diagnosticId() {
+  return randomUUID().replaceAll("-", "").slice(0, 12);
+}
+
+function logResponseFailure(
+  reference: string,
+  response: OpenAIStructuredResponse,
+  details: Record<string, unknown>,
+) {
+  console.error(
+    `AI marketing insight response rejected ${JSON.stringify({
+      reference,
+      model: MODEL,
+      responseId: response.id,
+      status: response.status,
+      incompleteReason: response.incomplete_details?.reason,
+      outputTextLength:
+        typeof response.output_text === "string"
+          ? response.output_text.length
+          : undefined,
+      outputItems: (response.output ?? []).map((item) => ({
+        type: item.type,
+        status: item.status,
+        contentTypes: (item.content ?? []).map((content) => content.type),
+      })),
+      ...details,
+    })}`,
+  );
 }
 
 function analysisSummary() {
@@ -110,18 +146,54 @@ export async function POST(request: Request) {
         format: zodTextFormat(
           marketingInsightsResponseSchema,
           "marketing_insights",
+          {
+            description:
+              "Up to five evidence-grounded paid-media insights selected verbatim from deterministic candidates.",
+          },
         ),
       },
-      max_output_tokens: 1200,
+      max_output_tokens: MAX_OUTPUT_TOKENS,
       store: false,
     });
+    const extracted = extractOpenAIStructuredResponse(response);
+
+    if (!extracted.success) {
+      const reference = diagnosticId();
+      logResponseFailure(reference, response, {
+        extractionFailure: extracted.reason,
+        extractedOutputTextLength: extracted.outputTextLength,
+      });
+
+      if (extracted.reason === "incomplete") {
+        return errorResponse(
+          `The AI analysis was cut off before it could complete the required format. Please try again. Reference: ${reference}.`,
+          502,
+        );
+      }
+
+      return errorResponse(
+        `The AI did not return a complete structured analysis that could be safely validated. Please try again. Reference: ${reference}.`,
+        502,
+      );
+    }
+
     const validation = validateCampaignAnalysisResponse(
-      response.output_parsed,
+      extracted.value,
       analysis,
     );
 
     if (!validation.success) {
-      return errorResponse(validation.error, 502);
+      const reference = diagnosticId();
+      logResponseFailure(reference, response, {
+        parsedSource: extracted.source,
+        extractedOutputTextLength: extracted.outputTextLength,
+        validationError: validation.error,
+        schemaIssues: "issues" in validation ? validation.issues : undefined,
+      });
+      return errorResponse(
+        `The AI returned an analysis that could not be safely validated against the sample data. Please try again. Reference: ${reference}.`,
+        502,
+      );
     }
 
     return Response.json({
@@ -140,7 +212,6 @@ export async function POST(request: Request) {
         type: error.type,
         code: error.code,
         requestId: error.requestID,
-        fullError: error,
       });
     }
 
@@ -166,8 +237,16 @@ export async function POST(request: Request) {
     }
 
     if (!(error instanceof OpenAI.APIError)) {
+      const reference = diagnosticId();
+      console.error(
+        `AI marketing insight processing failed ${JSON.stringify({
+          reference,
+          model: MODEL,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+        })}`,
+      );
       return errorResponse(
-        "The AI returned a malformed marketing insight response. Please try again.",
+        `The AI response could not be processed safely. Please try again. Reference: ${reference}.`,
         502,
       );
     }

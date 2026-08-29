@@ -69,7 +69,12 @@ export type MarketingInsightsResponse = z.infer<
 
 export type MarketingInsightsValidationResult =
   | { success: true; insights: MarketingInsight[] }
-  | { success: false; insights: []; error: string };
+  | {
+      success: false;
+      insights: [];
+      error: string;
+      issues: Array<{ path: string; code: string; message: string }>;
+    };
 
 export function validateMarketingInsights(
   value: unknown,
@@ -81,6 +86,11 @@ export function validateMarketingInsights(
       success: false,
       insights: [],
       error: "The AI response did not match the required marketing insight format.",
+      issues: result.error.issues.map((issue) => ({
+        path: issue.path.map(String).join(".") || "<root>",
+        code: issue.code,
+        message: issue.message,
+      })),
     };
   }
 

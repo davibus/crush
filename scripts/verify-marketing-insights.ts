@@ -2,6 +2,7 @@ import {
   validateMarketingInsights,
   type MarketingInsightsResponse,
 } from "../lib/marketing-insights.ts";
+import { extractOpenAIStructuredResponse } from "../lib/openai-structured-response.ts";
 
 const validPayload = {
   insights: [
@@ -64,4 +65,61 @@ assert(
   "Unknown response fields were accepted.",
 );
 
-console.log("Marketing insight schema verification passed.");
+const schemaFailure = validateMarketingInsights({ insights: [{ severity: "high" }] });
+assert(!schemaFailure.success, "Incomplete insight was accepted.");
+if (!schemaFailure.success) {
+  assert(
+    schemaFailure.issues.some((issue) => issue.path.includes("problemOpportunity")),
+    "Schema validation did not expose safe field-level diagnostics.",
+  );
+}
+
+const parsedResponse = extractOpenAIStructuredResponse({
+  status: "completed",
+  output_parsed: validPayload,
+  output_text: JSON.stringify(validPayload),
+});
+assert(parsedResponse.success, "SDK output_parsed payload was not extracted.");
+if (parsedResponse.success) {
+  assert(
+    validateMarketingInsights(parsedResponse.value).success,
+    "Extracted SDK payload did not pass defensive validation.",
+  );
+}
+
+const contentParsedResponse = extractOpenAIStructuredResponse({
+  status: "completed",
+  output: [
+    {
+      type: "message",
+      content: [{ type: "output_text", parsed: validPayload }],
+    },
+  ],
+});
+assert(
+  contentParsedResponse.success && contentParsedResponse.source === "content_parsed",
+  "Parsed message content was not handled.",
+);
+
+const rawTextResponse = extractOpenAIStructuredResponse({
+  status: "completed",
+  output_text: JSON.stringify(validPayload),
+});
+assert(
+  rawTextResponse.success && rawTextResponse.source === "output_text",
+  "Completed structured JSON text was not handled.",
+);
+
+const truncatedResponse = extractOpenAIStructuredResponse({
+  status: "incomplete",
+  incomplete_details: { reason: "max_output_tokens" },
+  output_text: '{"insights":[',
+});
+assert(
+  !truncatedResponse.success && truncatedResponse.reason === "incomplete",
+  "Truncated API output was incorrectly accepted.",
+);
+
+console.log(
+  "Marketing insight schema verification passed, including structured response extraction and incomplete-output rejection.",
+);
