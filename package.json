@@ -16,7 +16,8 @@
     "verify:insights-panel": "node --experimental-strip-types scripts/verify-ai-insights-panel.ts",
     "verify:chat": "node --experimental-strip-types scripts/verify-marketing-data-chat.ts",
     "verify:calculations": "node --experimental-strip-types scripts/verify-marketing-calculations.ts",
-    "verify:audit": "node --experimental-strip-types scripts/verify-account-audit.ts"
+    "verify:audit": "node --experimental-strip-types scripts/verify-account-audit.ts",
+    "verify:score": "node --experimental-strip-types scripts/verify-account-score.ts"
   },
   "dependencies": {
     "next": "16.3.3",
