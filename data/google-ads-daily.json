@@ -1,0 +1,60 @@
+{
+  "dailyMetrics": [
+    {
+      "date": "2025-08-18",
+      "impressions": 16500,
+      "clicks": 930,
+      "cost": 1980.5,
+      "conversions": 58,
+      "conversionValue": 7900
+    },
+    {
+      "date": "2025-08-19",
+      "impressions": 17820,
+      "clicks": 1010,
+      "cost": 2150.2,
+      "conversions": 67,
+      "conversionValue": 8600
+    },
+    {
+      "date": "2025-08-20",
+      "impressions": 17300,
+      "clicks": 975,
+      "cost": 2075.4,
+      "conversions": 61,
+      "conversionValue": 8250
+    },
+    {
+      "date": "2025-08-21",
+      "impressions": 19150,
+      "clicks": 1100,
+      "cost": 2250.6,
+      "conversions": 72,
+      "conversionValue": 9400
+    },
+    {
+      "date": "2025-08-22",
+      "impressions": 20400,
+      "clicks": 1175,
+      "cost": 2436,
+      "conversions": 79,
+      "conversionValue": 10800
+    },
+    {
+      "date": "2025-08-23",
+      "impressions": 21150,
+      "clicks": 1210,
+      "cost": 2579.2,
+      "conversions": 82,
+      "conversionValue": 11250
+    },
+    {
+      "date": "2025-08-24",
+      "impressions": 16800,
+      "clicks": 947,
+      "cost": 2166.8,
+      "conversions": 60,
+      "conversionValue": 8350
+    }
+  ]
+}

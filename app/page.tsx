@@ -1,6 +1,14 @@
 import googleAdsData from "@/data/google-ads-sample.json";
+import dailyData from "@/data/google-ads-daily.json";
+import geographyData from "@/data/google-ads-geography.json";
 import AiConnectionTest from "@/app/ai-connection-test";
 import KpiOverview from "@/app/components/kpi-overview";
+import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
+import {
+  buildCampaignComparisonData,
+  buildGeographicPerformanceData,
+  buildTimeSeriesData,
+} from "@/lib/chart-data";
 import { hasUsableDashboardData } from "@/lib/dashboard-kpis";
 import {
   aggregateGoogleAdsMetrics,
@@ -8,6 +16,8 @@ import {
   getCpc,
   getCtr,
   getRoas,
+  type GoogleAdsDailyMetric,
+  type GoogleAdsGeography,
   type GoogleAdsSampleData,
 } from "@/lib/google-ads";
 
@@ -16,6 +26,13 @@ export default function Home() {
 
   const totals = aggregateGoogleAdsMetrics(
     data.campaigns.map((campaign) => campaign.metrics),
+  );
+  const timeSeries = buildTimeSeriesData(
+    dailyData.dailyMetrics as GoogleAdsDailyMetric[],
+  );
+  const campaignComparison = buildCampaignComparisonData(data.campaigns);
+  const geographicPerformance = buildGeographicPerformanceData(
+    geographyData.locations as GoogleAdsGeography[],
   );
 
   return (
@@ -36,6 +53,15 @@ export default function Home() {
                 ? totals
                 : null
             }
+          />
+        </div>
+
+        <div className="mb-8">
+          <MarketingPerformanceCharts
+            campaigns={campaignComparison}
+            currency={data.account.currency}
+            geographies={geographicPerformance}
+            timeSeries={timeSeries}
           />
         </div>
 

@@ -164,6 +164,29 @@ Fields:
 
 
 
+\### google-ads-daily.json
+
+Daily account-level performance for the dashboard trend charts. The daily rows
+sum to the campaign-level account totals in `google-ads-sample.json`.
+
+
+
+Fields:
+
+\- date
+
+\- impressions
+
+\- clicks
+
+\- cost
+
+\- conversions
+
+\- conversion value
+
+
+
 \## Derived Metrics
 
 

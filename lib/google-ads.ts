@@ -49,6 +49,10 @@ export type GoogleAdsGeography = GoogleAdsDimensionMetrics & {
   location: string;
 };
 
+export type GoogleAdsDailyMetric = GoogleAdsMetrics & {
+  date: string;
+};
+
 export type GoogleAdsKeyword = GoogleAdsDimensionMetrics & {
   adGroup: string;
   keyword: string;
