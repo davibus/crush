@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Crush
+
+Crush is an AI marketing command center that turns Google Ads performance data into deterministic metrics, account audits, grounded recommendations, and conversational answers.
 
 ## Getting Started
 
@@ -15,6 +17,23 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+The application uses the included sample Google Ads dataset by default, so no external account is required for local development.
+
+## Live Google Ads data
+
+Crush can replace the sample dataset with read-only Google Ads API reporting while keeping the same dashboard, audit, chat, and insight pipelines.
+
+1. Create a Google Cloud OAuth client, enable the Google Ads API, and obtain a refresh token authorized with the `https://www.googleapis.com/auth/adwords` scope.
+2. Request or use a Google Ads developer token. If the selected account is reached through a manager account, note that manager customer ID as well.
+3. Copy `.env.example` to `.env.local`, fill in the server-only values, and leave every credential without a `NEXT_PUBLIC_` prefix.
+4. Set `GOOGLE_ADS_DATA_SOURCE=live`, then restart the development server.
+
+Customer IDs may contain dashes in the environment file; Crush normalizes and validates them before sending requests. `GOOGLE_ADS_LOGIN_CUSTOMER_ID` is optional and should identify the manager account, not the client account. The reporting window defaults to `LAST_30_DAYS` and supports the values documented in `.env.example`.
+
+`GOOGLE_ADS_API_VERSION` defaults to `v22` in this project. Google retires API versions on a schedule, so set this value to a currently supported version when upgrading. The adapter uses the REST `googleAds:searchStream` endpoint and maps campaign, daily, keyword, search-term, geography, device, and conversion-action rows into the existing Crush types. Geo-target constants are resolved to readable canonical location names when Google supplies a city target.
+
+If live credentials or an API request fail, the dashboard displays a warning and safely falls back to the sample dataset. Server logs contain the diagnostic message, but OAuth credentials and access tokens are never returned to the browser.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

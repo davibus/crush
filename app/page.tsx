@@ -1,9 +1,5 @@
-import googleAdsData from "@/data/google-ads-sample.json";
-import dailyData from "@/data/google-ads-daily.json";
-import geographyData from "@/data/google-ads-geography.json";
-import keywordData from "@/data/google-ads-keywords.json";
-import searchTermData from "@/data/google-ads-search-terms.json";
-import conversionData from "@/data/google-ads-conversions.json";
+import { connection } from "next/server";
+
 import AccountAudit from "@/app/components/account-audit";
 import KpiOverview from "@/app/components/kpi-overview";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
@@ -21,43 +17,56 @@ import {
   getCpc,
   getCtr,
   getRoas,
-  type GoogleAdsDailyMetric,
-  type GoogleAdsGeography,
-  type GoogleAdsKeyword,
-  type GoogleAdsSearchTerm,
-  type GoogleAdsConversion,
-  type GoogleAdsSampleData,
 } from "@/lib/google-ads";
 import { runAccountAudit } from "@/lib/account-audit";
+import { getMarketingData } from "@/lib/marketing-data-source";
 
-export default function Home() {
-  const data = googleAdsData as GoogleAdsSampleData;
+export default async function Home() {
+  await connection();
+  const marketingData = await getMarketingData();
+  const data = marketingData.campaignData;
 
   const totals = aggregateGoogleAdsMetrics(
     data.campaigns.map((campaign) => campaign.metrics),
   );
   const timeSeries = buildTimeSeriesData(
-    dailyData.dailyMetrics as GoogleAdsDailyMetric[],
+    marketingData.dailyMetrics,
   );
   const campaignComparison = buildCampaignComparisonData(data.campaigns);
   const geographicPerformance = buildGeographicPerformanceData(
-    geographyData.locations as GoogleAdsGeography[],
+    marketingData.geographies,
   );
   const audit = runAccountAudit({
     campaignData: data,
-    conversions: conversionData.conversions as GoogleAdsConversion[],
-    geographies: geographyData.locations as GoogleAdsGeography[],
-    keywords: keywordData.keywords as GoogleAdsKeyword[],
-    searchTerms: searchTermData.searchTerms as GoogleAdsSearchTerm[],
+    conversions: marketingData.conversions,
+    devices: marketingData.devices,
+    geographies: marketingData.geographies,
+    keywords: marketingData.keywords,
+    landingPages: marketingData.landingPages,
+    searchTerms: marketingData.searchTerms,
   });
 
   return (
     <main className="min-h-screen bg-zinc-50 p-4 text-zinc-900 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Crush</h1>
-          <p className="mt-2 text-zinc-600">{data.account.name}</p>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Crush</h1>
+            <p className="mt-2 text-zinc-600">{data.account.name}</p>
+          </div>
+          <div className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 shadow-sm">
+            {marketingData.sourceLabel} · {marketingData.dateRangeLabel}
+          </div>
         </div>
+
+        {marketingData.warning ? (
+          <p
+            className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"
+            role="alert"
+          >
+            {marketingData.warning}
+          </p>
+        ) : null}
 
         <div className="mb-8">
           <KpiOverview
@@ -82,7 +91,10 @@ export default function Home() {
         </div>
 
         <div className="mb-8">
-          <MarketingDataChat currency={data.account.currency} />
+          <MarketingDataChat
+            currency={data.account.currency}
+            dataSourceLabel={marketingData.sourceLabel}
+          />
         </div>
 
         <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white">

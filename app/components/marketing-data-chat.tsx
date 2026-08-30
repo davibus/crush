@@ -157,8 +157,10 @@ function AssistantMessage({
 
 export default function MarketingDataChat({
   currency,
+  dataSourceLabel = "loaded Google Ads data",
 }: {
   currency: string;
+  dataSourceLabel?: string;
 }) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [question, setQuestion] = useState("");
@@ -268,8 +270,8 @@ export default function MarketingDataChat({
               Ask Your Marketing Data
             </h2>
             <p className="mt-1 text-sm leading-5 text-zinc-500">
-              Ask performance questions grounded in the loaded Google Ads sample
-              data. Answers include calculated evidence and call out missing data.
+              Ask performance questions grounded in {dataSourceLabel.toLowerCase()}.
+              Answers include calculated evidence and call out missing data.
             </p>
           </div>
         </div>

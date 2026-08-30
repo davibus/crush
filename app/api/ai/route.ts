@@ -4,25 +4,12 @@ import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 
-import conversionData from "@/data/google-ads-conversions.json";
-import dailyData from "@/data/google-ads-daily.json";
-import geographyData from "@/data/google-ads-geography.json";
-import keywordData from "@/data/google-ads-keywords.json";
-import googleAdsData from "@/data/google-ads-sample.json";
-import searchTermData from "@/data/google-ads-search-terms.json";
 import {
   buildCampaignAnalysisPrompt,
   prepareCampaignPerformanceAnalysis,
+  type PreparedCampaignPerformanceAnalysis,
   validateCampaignAnalysisResponse,
 } from "@/lib/campaign-performance-analyzer";
-import {
-  type GoogleAdsConversion,
-  type GoogleAdsDailyMetric,
-  type GoogleAdsGeography,
-  type GoogleAdsKeyword,
-  type GoogleAdsSampleData,
-  type GoogleAdsSearchTerm,
-} from "@/lib/google-ads";
 import {
   buildGroundedChatCandidates,
   buildMarketingChatPrompt,
@@ -35,6 +22,7 @@ import {
   type MarketingChatRequest,
 } from "@/lib/marketing-data-chat";
 import { marketingInsightsResponseSchema } from "@/lib/marketing-insights";
+import { getMarketingData } from "@/lib/marketing-data-source";
 import {
   extractOpenAIStructuredResponse,
   type OpenAIStructuredResponse,
@@ -43,14 +31,6 @@ import {
 const MODEL = "gpt-4o-mini";
 const MAX_PROMPT_LENGTH = 500;
 const MAX_OUTPUT_TOKENS = 5000;
-const analysis = prepareCampaignPerformanceAnalysis({
-  campaignData: googleAdsData as GoogleAdsSampleData,
-  conversions: conversionData.conversions as GoogleAdsConversion[],
-  geographies: geographyData.locations as GoogleAdsGeography[],
-  keywords: keywordData.keywords as GoogleAdsKeyword[],
-  searchTerms: searchTermData.searchTerms as GoogleAdsSearchTerm[],
-});
-
 type AiRequest = Record<string, unknown>;
 
 function errorResponse(error: string, status: number) {
@@ -87,7 +67,7 @@ function logResponseFailure(
   );
 }
 
-function analysisSummary() {
+function analysisSummary(analysis: PreparedCampaignPerformanceAnalysis) {
   return {
     candidateCount: analysis.candidates.length,
     candidateCategories: [
@@ -140,6 +120,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const marketingData = await getMarketingData();
+  const analysis = prepareCampaignPerformanceAnalysis({
+    campaignData: marketingData.campaignData,
+    conversions: marketingData.conversions,
+    devices: marketingData.devices,
+    geographies: marketingData.geographies,
+    keywords: marketingData.keywords,
+    searchTerms: marketingData.searchTerms,
+  });
+
   let relevantChatCandidates: GroundedChatCandidate[] | undefined;
   if (chatRequest) {
     const calculation = resolveDeterministicCalculation(
@@ -159,7 +149,7 @@ export async function POST(request: Request) {
 
     const groundedCandidates = buildGroundedChatCandidates(
       analysis,
-      dailyData.dailyMetrics as GoogleAdsDailyMetric[],
+      marketingData.dailyMetrics,
     );
     relevantChatCandidates = selectGroundedChatCandidates(
       chatRequest.question,
@@ -196,7 +186,7 @@ export async function POST(request: Request) {
         ...(insufficient.status === "insufficient_data"
           ? { reason: insufficient.reason }
           : {}),
-        analysis: analysisSummary(),
+        analysis: analysisSummary(analysis),
       });
     }
   }
@@ -255,7 +245,7 @@ export async function POST(request: Request) {
           chatValidationError: validation.error,
         });
         return errorResponse(
-          `The AI returned an answer that could not be safely validated against the sample data. Please try again. Reference: ${reference}.`,
+          `The AI returned an answer that could not be safely validated against the loaded data. Please try again. Reference: ${reference}.`,
           502,
         );
       }
@@ -317,7 +307,7 @@ export async function POST(request: Request) {
         schemaIssues: "issues" in validation ? validation.issues : undefined,
       });
       return errorResponse(
-        `The AI returned an analysis that could not be safely validated against the sample data. Please try again. Reference: ${reference}.`,
+        `The AI returned an analysis that could not be safely validated against the loaded data. Please try again. Reference: ${reference}.`,
         502,
       );
     }
@@ -328,7 +318,7 @@ export async function POST(request: Request) {
       ...(validation.status === "insufficient_data"
         ? { reason: validation.reason }
         : {}),
-      analysis: analysisSummary(),
+      analysis: analysisSummary(analysis),
     });
   } catch (error) {
     if (error instanceof OpenAI.APIError) {

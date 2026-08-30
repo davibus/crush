@@ -60,8 +60,8 @@ export type GoogleAdsMetricCalculation = {
 export type GoogleAdsCampaign = {
   id: string;
   name: string;
-  status: "ENABLED" | "PAUSED";
-  channel: "SEARCH" | "PERFORMANCE_MAX";
+  status: "ENABLED" | "PAUSED" | "REMOVED" | "UNKNOWN";
+  channel: string;
   dailyBudget: number;
   metrics: GoogleAdsMetrics;
 };
@@ -94,15 +94,15 @@ export type GoogleAdsDailyMetric = GoogleAdsMetrics & {
 export type GoogleAdsKeyword = GoogleAdsDimensionMetrics & {
   adGroup: string;
   keyword: string;
-  matchType: "EXACT" | "PHRASE" | "BROAD";
-  status: "ENABLED" | "PAUSED";
+  matchType: "EXACT" | "PHRASE" | "BROAD" | "UNKNOWN";
+  status: "ENABLED" | "PAUSED" | "REMOVED" | "UNKNOWN";
 };
 
 export type GoogleAdsSearchTerm = GoogleAdsDimensionMetrics & {
   adGroup: string;
   searchTerm: string;
   matchedKeyword: string;
-  matchType: "EXACT" | "PHRASE" | "BROAD";
+  matchType: "EXACT" | "PHRASE" | "BROAD" | "UNKNOWN";
 };
 
 export type GoogleAdsDevice = GoogleAdsDimensionMetrics & {

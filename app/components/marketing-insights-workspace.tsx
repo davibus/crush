@@ -117,7 +117,7 @@ export default function MarketingInsightsWorkspace({
             disabled={isLoading || !prompt.trim()}
             type="submit"
           >
-            {isLoading ? "Analyzing..." : "Analyze sample account"}
+            {isLoading ? "Analyzing..." : "Analyze account"}
           </button>
         </form>
       </div>
@@ -133,7 +133,7 @@ export default function MarketingInsightsWorkspace({
           </p>
           {analysis.unavailableDimensions.length > 0 ? (
             <p className="mt-1 text-blue-800">
-              No sample data: {analysis.unavailableDimensions.join(", ")}.
+              No loaded data: {analysis.unavailableDimensions.join(", ")}.
             </p>
           ) : null}
         </div>
