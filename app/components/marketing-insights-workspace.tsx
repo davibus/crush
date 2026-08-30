@@ -20,7 +20,11 @@ type AiResponse = {
   };
 };
 
-export default function AiConnectionTest({ currency }: { currency: string }) {
+export default function MarketingInsightsWorkspace({
+  currency,
+}: {
+  currency: string;
+}) {
   const [prompt, setPrompt] = useState(
     "Analyze this account and recommend the most important campaign optimizations.",
   );

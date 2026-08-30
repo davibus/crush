@@ -1,8 +1,9 @@
 import googleAdsData from "@/data/google-ads-sample.json";
 import dailyData from "@/data/google-ads-daily.json";
 import geographyData from "@/data/google-ads-geography.json";
-import AiConnectionTest from "@/app/ai-connection-test";
 import KpiOverview from "@/app/components/kpi-overview";
+import MarketingDataChat from "@/app/components/marketing-data-chat";
+import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
 import {
   buildCampaignComparisonData,
@@ -63,6 +64,10 @@ export default function Home() {
             geographies={geographicPerformance}
             timeSeries={timeSeries}
           />
+        </div>
+
+        <div className="mb-8">
+          <MarketingDataChat currency={data.account.currency} />
         </div>
 
         <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
@@ -136,7 +141,7 @@ export default function Home() {
           </div>
         </section>
 
-        <AiConnectionTest currency={data.account.currency} />
+        <MarketingInsightsWorkspace currency={data.account.currency} />
       </div>
     </main>
   );

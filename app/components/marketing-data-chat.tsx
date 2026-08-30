@@ -1,0 +1,331 @@
+"use client";
+
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+
+import {
+  MAX_CHAT_HISTORY_MESSAGES,
+  MAX_CHAT_QUESTION_LENGTH,
+  marketingChatResponseSchema,
+  type MarketingChatResponse,
+} from "@/lib/marketing-data-chat";
+import type { MarketingEvidence } from "@/lib/marketing-insights";
+
+const STARTER_QUESTIONS = [
+  "Why did CPA increase?",
+  "Which campaigns are performing best?",
+  "Which campaigns are wasting money?",
+  "Which cities have the highest conversion rate?",
+  "Where should budget increase?",
+  "Which search terms should become negatives?",
+  "What changed this week?",
+] as const;
+
+const MAX_VISIBLE_MESSAGES = 10;
+
+type DisplayMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  response?: MarketingChatResponse;
+};
+
+function messageId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
+
+function formatEvidence(item: MarketingEvidence, currencyCode: string): string {
+  if (item.unit === "currency") {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(item.value);
+  }
+  if (item.unit === "percent") return `${item.value.toFixed(2)}%`;
+  if (item.unit === "ratio") return `${item.value.toFixed(2)}x`;
+  return item.value.toLocaleString("en-US");
+}
+
+function AssistantMessage({
+  response,
+  currencyCode,
+}: {
+  response: MarketingChatResponse;
+  currencyCode: string;
+}) {
+  return (
+    <div>
+      <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-800">
+        {response.answer}
+      </p>
+
+      {response.supportingEvidence.length > 0 ? (
+        <div className="mt-3 border-t border-zinc-200 pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Supporting evidence
+          </p>
+          <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+            {response.supportingEvidence.map((item, index) => (
+              <div
+                className="rounded-lg bg-white p-2.5 ring-1 ring-zinc-200"
+                key={`${item.metric}-${item.context}-${index}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-xs font-medium text-zinc-600">
+                    {item.metric}
+                  </dt>
+                  <dd className="text-sm font-semibold tabular-nums text-zinc-950">
+                    {formatEvidence(item, currencyCode)}
+                  </dd>
+                </div>
+                <dd className="mt-1 text-xs leading-4 text-zinc-500">
+                  {item.context}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
+
+      {response.limitations.length > 0 ? (
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+          <span className="font-semibold">Data limitation: </span>
+          {response.limitations.join(" ")}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default function MarketingDataChat({
+  currency,
+}: {
+  currency: string;
+}) {
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [question, setQuestion] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading, error]);
+
+  async function submitQuestion(rawQuestion: string) {
+    const submittedQuestion = rawQuestion.trim();
+    if (!submittedQuestion || isLoading) return;
+
+    const userMessage: DisplayMessage = {
+      id: messageId(),
+      role: "user",
+      content: submittedQuestion,
+    };
+    const history = messages.slice(-MAX_CHAT_HISTORY_MESSAGES).map((message) => ({
+      role: message.role,
+      content: message.content,
+    }));
+
+    setMessages((current) =>
+      [...current, userMessage].slice(-MAX_VISIBLE_MESSAGES),
+    );
+    setQuestion("");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: submittedQuestion, history }),
+      });
+      const result = (await response.json()) as unknown;
+
+      if (!response.ok) {
+        const serverError =
+          result &&
+          typeof result === "object" &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : "The question could not be analyzed. Please try again.";
+        setError(serverError);
+        return;
+      }
+
+      const validation = marketingChatResponseSchema.safeParse(result);
+      if (!validation.success) {
+        setError(
+          "The response could not be displayed because it did not pass the required safety format.",
+        );
+        return;
+      }
+
+      const assistantMessage: DisplayMessage = {
+        id: messageId(),
+        role: "assistant",
+        content: validation.data.answer,
+        response: validation.data,
+      };
+      setMessages((current) =>
+        [...current, assistantMessage].slice(-MAX_VISIBLE_MESSAGES),
+      );
+    } catch {
+      setError("Could not reach the marketing data service. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submitQuestion(question);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void submitQuestion(question);
+    }
+  }
+
+  return (
+    <section
+      aria-labelledby="marketing-data-chat-heading"
+      className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm shadow-zinc-200/40"
+    >
+      <header className="border-b border-zinc-200 px-5 py-5 sm:px-6">
+        <div className="flex items-start gap-3">
+          <span
+            aria-hidden="true"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-lg text-white"
+          >
+            ✦
+          </span>
+          <div>
+            <h2
+              className="text-lg font-semibold text-zinc-950"
+              id="marketing-data-chat-heading"
+            >
+              Ask Your Marketing Data
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-zinc-500">
+              Ask performance questions grounded in the loaded Google Ads sample
+              data. Answers include calculated evidence and call out missing data.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <div
+        aria-busy={isLoading}
+        aria-live="polite"
+        className="max-h-[34rem] min-h-80 overflow-y-auto bg-zinc-50/70 px-4 py-5 sm:px-6"
+      >
+        {messages.length === 0 ? (
+          <div className="mx-auto flex min-h-72 max-w-3xl flex-col items-center justify-center text-center">
+            <h3 className="font-semibold text-zinc-900">
+              What would you like to understand?
+            </h3>
+            <p className="mt-1 max-w-xl text-sm leading-6 text-zinc-500">
+              Start with a suggested question or ask about campaigns,
+              locations, budgets, and search terms in your own words.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {STARTER_QUESTIONS.map((starter) => (
+                <button
+                  className="rounded-full border border-zinc-300 bg-white px-3 py-2 text-left text-xs font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isLoading}
+                  key={starter}
+                  onClick={() => void submitQuestion(starter)}
+                  type="button"
+                >
+                  {starter}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto grid max-w-3xl gap-4">
+            {messages.map((message) => (
+              <article
+                className={
+                  message.role === "user"
+                    ? "ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-zinc-900 px-4 py-3 text-white"
+                    : "mr-auto max-w-[95%] rounded-2xl rounded-bl-md border border-zinc-200 bg-zinc-100 px-4 py-3"
+                }
+                key={message.id}
+              >
+                <p className="mb-1 text-xs font-semibold opacity-65">
+                  {message.role === "user" ? "You" : "Crush"}
+                </p>
+                {message.response ? (
+                  <AssistantMessage
+                    currencyCode={currency}
+                    response={message.response}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm leading-6">
+                    {message.content}
+                  </p>
+                )}
+              </article>
+            ))}
+
+            {isLoading ? (
+              <div className="mr-auto flex items-center gap-2 rounded-2xl rounded-bl-md border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600" role="status">
+                <span className="flex gap-1" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-500 motion-reduce:animate-none" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-500 [animation-delay:150ms] motion-reduce:animate-none" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-500 [animation-delay:300ms] motion-reduce:animate-none" />
+                </span>
+                Analyzing your marketing data...
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {error ? (
+          <p
+            className="mx-auto mt-4 max-w-3xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
+          >
+            {error}
+          </p>
+        ) : null}
+        <div ref={conversationEndRef} />
+      </div>
+
+      <form className="border-t border-zinc-200 p-4 sm:p-5" onSubmit={handleSubmit}>
+        <label className="sr-only" htmlFor="marketing-question">
+          Ask a question about your marketing data
+        </label>
+        <div className="flex items-end gap-3">
+          <textarea
+            className="max-h-36 min-h-12 flex-1 resize-y rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 disabled:bg-zinc-100"
+            disabled={isLoading}
+            id="marketing-question"
+            maxLength={MAX_CHAT_QUESTION_LENGTH}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about campaign performance..."
+            rows={1}
+            value={question}
+          />
+          <button
+            className="min-h-12 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isLoading || !question.trim()}
+            type="submit"
+          >
+            {isLoading ? "Working..." : "Send"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">
+          Press Enter to send · Shift+Enter for a new line · Recent context is
+          limited to {MAX_CHAT_HISTORY_MESSAGES} messages
+        </p>
+      </form>
+    </section>
+  );
+}

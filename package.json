@@ -13,7 +13,8 @@
     "verify:charts": "node --experimental-strip-types scripts/verify-marketing-charts.ts",
     "verify:metrics": "node scripts/verify-google-ads-metrics.mjs",
     "verify:insights": "node --experimental-strip-types scripts/verify-marketing-insights.ts",
-    "verify:insights-panel": "node --experimental-strip-types scripts/verify-ai-insights-panel.ts"
+    "verify:insights-panel": "node --experimental-strip-types scripts/verify-ai-insights-panel.ts",
+    "verify:chat": "node --experimental-strip-types scripts/verify-marketing-data-chat.ts"
   },
   "dependencies": {
     "next": "16.3.3",

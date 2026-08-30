@@ -5,6 +5,7 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 
 import conversionData from "@/data/google-ads-conversions.json";
+import dailyData from "@/data/google-ads-daily.json";
 import geographyData from "@/data/google-ads-geography.json";
 import keywordData from "@/data/google-ads-keywords.json";
 import googleAdsData from "@/data/google-ads-sample.json";
@@ -16,11 +17,22 @@ import {
 } from "@/lib/campaign-performance-analyzer";
 import {
   type GoogleAdsConversion,
+  type GoogleAdsDailyMetric,
   type GoogleAdsGeography,
   type GoogleAdsKeyword,
   type GoogleAdsSampleData,
   type GoogleAdsSearchTerm,
 } from "@/lib/google-ads";
+import {
+  buildGroundedChatCandidates,
+  buildMarketingChatPrompt,
+  marketingChatRequestSchema,
+  marketingChatResponseSchema,
+  selectGroundedChatCandidates,
+  validateGroundedChatResponse,
+  type GroundedChatCandidate,
+  type MarketingChatRequest,
+} from "@/lib/marketing-data-chat";
 import { marketingInsightsResponseSchema } from "@/lib/marketing-insights";
 import {
   extractOpenAIStructuredResponse,
@@ -38,9 +50,7 @@ const analysis = prepareCampaignPerformanceAnalysis({
   searchTerms: searchTermData.searchTerms as GoogleAdsSearchTerm[],
 });
 
-type AiRequest = {
-  prompt?: unknown;
-};
+type AiRequest = Record<string, unknown>;
 
 function errorResponse(error: string, status: number) {
   return Response.json({ insights: [], error }, { status });
@@ -89,19 +99,38 @@ function analysisSummary() {
 }
 
 export async function POST(request: Request) {
-  let body: AiRequest;
+  let body: unknown;
 
   try {
-    body = (await request.json()) as AiRequest;
+    body = await request.json();
   } catch {
     return errorResponse("Request body must be valid JSON.", 400);
   }
 
-  if (typeof body.prompt !== "string" || !body.prompt.trim()) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return errorResponse("Request body must be a JSON object.", 400);
+  }
+
+  const requestBody = body as AiRequest;
+  const isChatRequest = "question" in requestBody || "history" in requestBody;
+  let chatRequest: MarketingChatRequest | undefined;
+
+  if (isChatRequest) {
+    const parsed = marketingChatRequestSchema.safeParse(requestBody);
+    if (!parsed.success) {
+      return errorResponse(
+        parsed.error.issues[0]?.message ?? "Chat request is invalid.",
+        400,
+      );
+    }
+    chatRequest = parsed.data;
+  }
+
+  if (!chatRequest && (typeof requestBody.prompt !== "string" || !requestBody.prompt.trim())) {
     return errorResponse("Prompt must be a non-empty string.", 400);
   }
 
-  const prompt = body.prompt.trim();
+  const prompt = chatRequest ? "" : (requestBody.prompt as string).trim();
 
   if (prompt.length > MAX_PROMPT_LENGTH) {
     return errorResponse(
@@ -110,7 +139,35 @@ export async function POST(request: Request) {
     );
   }
 
-  if (analysis.candidates.length === 0) {
+  let relevantChatCandidates: GroundedChatCandidate[] | undefined;
+  if (chatRequest) {
+    const groundedCandidates = buildGroundedChatCandidates(
+      analysis,
+      dailyData.dailyMetrics as GoogleAdsDailyMetric[],
+    );
+    relevantChatCandidates = selectGroundedChatCandidates(
+      chatRequest.question,
+      chatRequest.history,
+      groundedCandidates,
+    );
+
+    if (relevantChatCandidates.length === 1) {
+      const deterministic = relevantChatCandidates[0];
+      const validation = validateGroundedChatResponse(
+        deterministic?.response,
+        relevantChatCandidates,
+      );
+      if (!validation.success) {
+        return errorResponse(
+          "The prepared marketing answer failed grounded validation.",
+          500,
+        );
+      }
+      return Response.json(validation.response);
+    }
+  }
+
+  if (!chatRequest && analysis.candidates.length === 0) {
     const insufficient = validateCampaignAnalysisResponse(
       { insights: [] },
       analysis,
@@ -137,6 +194,59 @@ export async function POST(request: Request) {
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    if (chatRequest) {
+      const relevantCandidates = relevantChatCandidates ?? [];
+      const response = await openai.responses.parse({
+        model: MODEL,
+        instructions:
+          "You route a marketing question to one supplied deterministic answer packet. The packets are the only source of truth. Return exactly one packet's response object verbatim. Conversation history may clarify references, but never overrides the packets. Never invent, revise, summarize, calculate, combine, or add an entity, metric, cause, recommendation, limitation, or explanation.",
+        input: buildMarketingChatPrompt(chatRequest, relevantCandidates),
+        text: {
+          format: zodTextFormat(
+            marketingChatResponseSchema,
+            "marketing_data_chat_response",
+            {
+              description:
+                "One evidence-grounded conversational answer copied exactly from an allowed deterministic packet.",
+            },
+          ),
+        },
+        max_output_tokens: MAX_OUTPUT_TOKENS,
+        store: false,
+      });
+      const extracted = extractOpenAIStructuredResponse(response);
+
+      if (!extracted.success) {
+        const reference = diagnosticId();
+        logResponseFailure(reference, response, {
+          chatExtractionFailure: extracted.reason,
+          extractedOutputTextLength: extracted.outputTextLength,
+        });
+        return errorResponse(
+          `The AI did not return a complete structured answer that could be safely validated. Please try again. Reference: ${reference}.`,
+          502,
+        );
+      }
+
+      const validation = validateGroundedChatResponse(
+        extracted.value,
+        relevantCandidates,
+      );
+      if (!validation.success) {
+        const reference = diagnosticId();
+        logResponseFailure(reference, response, {
+          parsedSource: extracted.source,
+          chatValidationError: validation.error,
+        });
+        return errorResponse(
+          `The AI returned an answer that could not be safely validated against the sample data. Please try again. Reference: ${reference}.`,
+          502,
+        );
+      }
+
+      return Response.json(validation.response);
+    }
+
     const response = await openai.responses.parse({
       model: MODEL,
       instructions:
