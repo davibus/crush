@@ -1,6 +1,10 @@
 import googleAdsData from "@/data/google-ads-sample.json";
 import dailyData from "@/data/google-ads-daily.json";
 import geographyData from "@/data/google-ads-geography.json";
+import keywordData from "@/data/google-ads-keywords.json";
+import searchTermData from "@/data/google-ads-search-terms.json";
+import conversionData from "@/data/google-ads-conversions.json";
+import AccountAudit from "@/app/components/account-audit";
 import KpiOverview from "@/app/components/kpi-overview";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
 import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
@@ -19,8 +23,12 @@ import {
   getRoas,
   type GoogleAdsDailyMetric,
   type GoogleAdsGeography,
+  type GoogleAdsKeyword,
+  type GoogleAdsSearchTerm,
+  type GoogleAdsConversion,
   type GoogleAdsSampleData,
 } from "@/lib/google-ads";
+import { runAccountAudit } from "@/lib/account-audit";
 
 export default function Home() {
   const data = googleAdsData as GoogleAdsSampleData;
@@ -35,6 +43,13 @@ export default function Home() {
   const geographicPerformance = buildGeographicPerformanceData(
     geographyData.locations as GoogleAdsGeography[],
   );
+  const audit = runAccountAudit({
+    campaignData: data,
+    conversions: conversionData.conversions as GoogleAdsConversion[],
+    geographies: geographyData.locations as GoogleAdsGeography[],
+    keywords: keywordData.keywords as GoogleAdsKeyword[],
+    searchTerms: searchTermData.searchTerms as GoogleAdsSearchTerm[],
+  });
 
   return (
     <main className="min-h-screen bg-zinc-50 p-4 text-zinc-900 sm:p-6 lg:p-8">
@@ -140,6 +155,8 @@ export default function Home() {
             </table>
           </div>
         </section>
+
+        <AccountAudit audit={audit} />
 
         <MarketingInsightsWorkspace currency={data.account.currency} />
       </div>

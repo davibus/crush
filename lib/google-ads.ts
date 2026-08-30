@@ -109,6 +109,10 @@ export type GoogleAdsDevice = GoogleAdsDimensionMetrics & {
   device: string;
 };
 
+export type GoogleAdsLandingPage = GoogleAdsDimensionMetrics & {
+  finalUrl: string;
+};
+
 export type GoogleAdsConversion = {
   id: string;
   campaignId: string;
