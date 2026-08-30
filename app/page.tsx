@@ -136,7 +136,7 @@ export default function Home() {
           </div>
         </section>
 
-        <AiConnectionTest />
+        <AiConnectionTest currency={data.account.currency} />
       </div>
     </main>
   );
