@@ -34,17 +34,25 @@ function messageId(): string {
 }
 
 function formatEvidence(item: MarketingEvidence, currencyCode: string): string {
-  if (item.unit === "currency") {
+  return formatValue(item.value, item.unit, currencyCode);
+}
+
+function formatValue(
+  value: number,
+  unit: "currency" | "percent" | "count" | "ratio",
+  currencyCode: string,
+): string {
+  if (unit === "currency") {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currencyCode,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(item.value);
+    }).format(value);
   }
-  if (item.unit === "percent") return `${item.value.toFixed(2)}%`;
-  if (item.unit === "ratio") return `${item.value.toFixed(2)}x`;
-  return item.value.toLocaleString("en-US");
+  if (unit === "percent") return `${value.toFixed(2)}%`;
+  if (unit === "ratio") return `${value.toFixed(2)}x`;
+  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 function AssistantMessage({
@@ -59,6 +67,55 @@ function AssistantMessage({
       <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-800">
         {response.answer}
       </p>
+
+      {response.calculations?.length ? (
+        <div className="mt-3 border-t border-zinc-200 pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Calculation
+          </p>
+          <div className="mt-2 grid gap-2">
+            {response.calculations.map((calculation, index) => (
+              <div
+                className="rounded-lg bg-white p-3 ring-1 ring-zinc-200"
+                key={`${calculation.entity.id}-${calculation.metric}-${index}`}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-xs font-medium text-zinc-600">
+                    {calculation.entity.name} · {calculation.label}
+                  </p>
+                  <p className="text-sm font-semibold tabular-nums text-zinc-950">
+                    {calculation.result
+                      ? formatValue(
+                          calculation.result.value,
+                          calculation.result.unit,
+                          currencyCode,
+                        )
+                      : "Unavailable"}
+                  </p>
+                </div>
+                <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600">
+                  {calculation.inputs.map((input) => (
+                    <div className="flex gap-1" key={input.label}>
+                      <dt>{input.label}:</dt>
+                      <dd className="font-medium tabular-nums text-zinc-800">
+                        {formatValue(input.value, input.unit, currencyCode)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-2 text-xs text-zinc-500">
+                  Formula: {calculation.formula}
+                </p>
+                {calculation.reason ? (
+                  <p className="mt-1 text-xs text-amber-800">
+                    {calculation.reason}
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {response.supportingEvidence.length > 0 ? (
         <div className="mt-3 border-t border-zinc-200 pt-3">

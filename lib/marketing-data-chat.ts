@@ -2,12 +2,18 @@ import { z } from "zod";
 
 import type { PreparedCampaignPerformanceAnalysis } from "./campaign-performance-analyzer.ts";
 import {
+  calculateGoogleAdsMetric,
   calculateGoogleAdsMetrics,
+  GOOGLE_ADS_METRIC_KEYS,
+  type CalculatedGoogleAdsMetrics,
   type GoogleAdsDailyMetric,
+  type GoogleAdsMetricCalculation,
+  type GoogleAdsMetricKey,
 } from "./google-ads.ts";
 import {
   marketingEntitySchema,
   marketingEvidenceSchema,
+  type MarketingEntity,
 } from "./marketing-insights.ts";
 
 export const MAX_CHAT_QUESTION_LENGTH = 500;
@@ -47,11 +53,44 @@ export const marketingChatRequestSchema = z
 
 export const marketingChatResponseSchema = z
   .object({
-    status: z.enum(["supported", "unsupported"]),
+    status: z.enum(["supported", "unsupported", "insufficient_data"]),
     answer: z.string().trim().min(1).max(2_000),
     supportingEvidence: z.array(marketingEvidenceSchema).max(12),
     limitations: z.array(z.string().trim().min(1).max(400)).max(4),
     referencedEntities: z.array(marketingEntitySchema).max(8),
+    calculations: z
+      .array(
+        z
+          .object({
+            metric: z.enum(GOOGLE_ADS_METRIC_KEYS),
+            label: z.string().trim().min(1).max(100),
+            status: z.enum(["calculated", "insufficient_data"]),
+            formula: z.string().trim().min(1).max(200),
+            inputs: z
+              .array(
+                z
+                  .object({
+                    label: z.string().trim().min(1).max(100),
+                    value: z.number().finite(),
+                    unit: z.enum(["currency", "percent", "count", "ratio"]),
+                  })
+                  .strict(),
+              )
+              .max(5),
+            result: z
+              .object({
+                value: z.number().finite(),
+                unit: z.enum(["currency", "percent", "count", "ratio"]),
+              })
+              .strict()
+              .nullable(),
+            reason: z.string().trim().min(1).max(300).nullable(),
+            entity: marketingEntitySchema,
+          })
+          .strict(),
+      )
+      .max(8)
+      .optional(),
   })
   .strict();
 
@@ -74,9 +113,13 @@ export type MarketingChatIntent =
   | "unknown";
 
 export type GroundedChatCandidate = {
-  id: Exclude<MarketingChatIntent, "unknown"> | "unsupported_question";
+  id: string;
   response: MarketingChatResponse;
 };
+
+export type MarketingChatCalculation = NonNullable<
+  MarketingChatResponse["calculations"]
+>[number];
 
 function round(value: number): number {
   return Number(value.toFixed(2));
@@ -98,6 +141,252 @@ function evidence(
   context: string,
 ) {
   return { metric, value: round(value), unit, context } as const;
+}
+
+function calculationMetrics(
+  metrics: CalculatedGoogleAdsMetrics,
+): Parameters<typeof calculateGoogleAdsMetric>[0] {
+  return {
+    impressions: metrics.impressions,
+    clicks: metrics.clicks,
+    cost: metrics.spend,
+    conversions: metrics.conversions,
+    conversionValue: metrics.conversionValue,
+  };
+}
+
+function chatCalculation(
+  calculation: GoogleAdsMetricCalculation,
+  entity: MarketingEntity,
+): MarketingChatCalculation {
+  return {
+    metric: calculation.metric,
+    label: calculation.label,
+    status: calculation.status,
+    formula: calculation.formula,
+    inputs: calculation.inputs.map(({ label, value, unit }) => ({
+      label,
+      value,
+      unit,
+    })),
+    result:
+      calculation.status === "calculated"
+        ? { value: calculation.value, unit: calculation.unit }
+        : null,
+    reason:
+      calculation.status === "insufficient_data"
+        ? calculation.reason
+        : null,
+    entity,
+  };
+}
+
+function formatMetricValue(
+  calculation: MarketingChatCalculation,
+  currencyCode: string,
+): string {
+  const result = calculation.result;
+  if (!result) return "unavailable";
+  if (result.unit === "currency") return currency(result.value, currencyCode);
+  if (result.unit === "percent") return `${result.value.toFixed(2)}%`;
+  if (result.unit === "ratio") return `${result.value.toFixed(2)}x`;
+  return result.value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+function normalizedText(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function requestedMetric(question: string): GoogleAdsMetricKey | null {
+  const normalized = normalizedText(question);
+  if (/\b(?:cpa|cost per (?:acquisition|conversion)|each conversion cost)\b/.test(normalized)) return "cpa";
+  if (/\b(?:conversion rate|percentage of clicks converted|percent of clicks converted)\b/.test(normalized)) return "conversionRate";
+  if (/\bctr\b|\bclick through rate\b/.test(normalized)) return "ctr";
+  if (/\bcpc\b|\bcost per click\b/.test(normalized)) return "cpc";
+  if (/\broas\b|\breturn on ad spend\b/.test(normalized)) return "roas";
+  if (/\bconversion value\b|\bvalue of conversions\b/.test(normalized)) return "conversionValue";
+  if (/\bspend\b|\bhow much (?:did|have) (?:i|we) spend\b/.test(normalized)) return "spend";
+  if (/\bimpressions?\b/.test(normalized)) return "impressions";
+  if (/\bclicks?\b/.test(normalized)) return "clicks";
+  if (/\bconversions?\b/.test(normalized)) return "conversions";
+  return null;
+}
+
+function mentionedCampaigns(
+  question: string,
+  campaigns: PreparedCampaignPerformanceAnalysis["campaigns"],
+) {
+  const normalized = normalizedText(question);
+  const occurrences = campaigns.flatMap((campaign) => {
+    const name = normalizedText(campaign.name);
+    const matches: Array<{ campaign: (typeof campaigns)[number]; start: number; end: number }> = [];
+    let start = normalized.indexOf(name);
+    while (start >= 0) {
+      matches.push({ campaign, start, end: start + name.length });
+      start = normalized.indexOf(name, start + 1);
+    }
+    return matches;
+  });
+  const selected: typeof occurrences = [];
+  for (const occurrence of occurrences.sort(
+    (left, right) => left.start - right.start || right.end - right.start - (left.end - left.start),
+  )) {
+    if (
+      selected.some(
+        (existing) => occurrence.start >= existing.start && occurrence.end <= existing.end,
+      )
+    ) continue;
+    selected.push(occurrence);
+  }
+  return [...new Map(selected.map(({ campaign }) => [campaign.id, campaign])).values()];
+}
+
+export function resolveDeterministicCalculation(
+  question: string,
+  analysis: PreparedCampaignPerformanceAnalysis,
+): GroundedChatCandidate | null {
+  const normalized = normalizedText(question);
+  if (
+    /\bwhy\b/.test(normalized) ||
+    /\b(?:increase|increased|increasing|rise|rising|rose|changed|change)\b/.test(normalized)
+  ) return null;
+
+  const metric = requestedMetric(question);
+  if (!metric) return null;
+
+  const currencyCode = analysis.account.currency;
+  const accountEntity: MarketingEntity = {
+    type: "account",
+    id: analysis.account.id,
+    name: analysis.account.name,
+  };
+  if (analysis.campaigns.length === 0) {
+    return {
+      id: `calculation:${metric}:no-data`,
+      response: {
+        status: "insufficient_data",
+        answer: `The available data does not contain campaign metrics to calculate the requested account result.`,
+        supportingEvidence: [],
+        limitations: ["At least one campaign metric row is required."],
+        referencedEntities: [accountEntity],
+        calculations: [],
+      },
+    };
+  }
+  const mentioned = mentionedCampaigns(question, analysis.campaigns);
+  const asksForCampaignRanking =
+    /\bwhich campaigns?\b/.test(normalized) &&
+    /\b(?:lowest|highest|best|worst|top)\b/.test(normalized);
+  const asksForComparison =
+    mentioned.length >= 2 &&
+    /\b(?:compare|compared|versus|vs|difference|higher|lower)\b/.test(normalized);
+
+  const makeCampaignCalculation = (
+    campaign: PreparedCampaignPerformanceAnalysis["campaigns"][number],
+  ) =>
+    chatCalculation(calculateGoogleAdsMetric(calculationMetrics(campaign.metrics), metric), {
+      type: "campaign",
+      id: campaign.id,
+      name: campaign.name,
+    });
+
+  if (asksForCampaignRanking) {
+    const calculations = analysis.campaigns.map(makeCampaignCalculation);
+    const available = calculations.filter(
+      (item): item is MarketingChatCalculation & { result: NonNullable<MarketingChatCalculation["result"]> } =>
+        item.status === "calculated" && item.result !== null,
+    );
+    if (available.length === 0) {
+      const reason = calculations[0]?.reason ?? "No campaign data is available.";
+      return {
+        id: `calculation:${metric}:campaign-ranking`,
+        response: {
+          status: "insufficient_data",
+          answer: `The ${metric === "cpa" ? "lowest CPA" : requestedMetric(question)} cannot be determined from the available campaign data. ${reason}`,
+          supportingEvidence: [],
+          limitations: [reason],
+          referencedEntities: calculations.map((item) => item.entity),
+          calculations,
+        },
+      };
+    }
+    const wantsLowest = /\b(?:lowest|worst)\b/.test(normalized) ||
+      (/\bbest\b/.test(normalized) && (metric === "cpa" || metric === "cpc"));
+    const ranked = [...available].sort((left, right) =>
+      wantsLowest
+        ? left.result.value - right.result.value
+        : right.result.value - left.result.value,
+    );
+    const winner = ranked[0]!;
+    return {
+      id: `calculation:${metric}:campaign-ranking`,
+      response: {
+        status: "supported",
+        answer: `${winner.entity.name} has the ${wantsLowest ? "lowest" : "highest"} ${winner.label} at ${formatMetricValue(winner, currencyCode)} among campaigns with enough data to calculate it.`,
+        supportingEvidence: [],
+        limitations:
+          available.length === calculations.length
+            ? []
+            : ["Campaigns with an undefined result were excluded from the ranking."],
+        referencedEntities: calculations.map((item) => item.entity),
+        calculations,
+      },
+    };
+  }
+
+  const targets = mentioned.length > 0
+    ? mentioned.slice(0, asksForComparison ? 2 : 1).map(makeCampaignCalculation)
+    : [chatCalculation(calculateGoogleAdsMetric(calculationMetrics(analysis.accountMetrics), metric), accountEntity)];
+
+  if (targets.some((item) => item.status === "insufficient_data")) {
+    const reasons = targets.flatMap((item) => item.reason ?? []);
+    return {
+      id: `calculation:${metric}:insufficient`,
+      response: {
+        status: "insufficient_data",
+        answer: `${targets.map((item) => item.entity.name).join(" and ")} does not have sufficient data to calculate ${targets[0]!.label}. ${reasons.join(" ")}`,
+        supportingEvidence: [],
+        limitations: reasons,
+        referencedEntities: targets.map((item) => item.entity),
+        calculations: targets,
+      },
+    };
+  }
+
+  if (asksForComparison && targets.length === 2) {
+    const [left, right] = targets;
+    const leftValue = left!.result!.value;
+    const rightValue = right!.result!.value;
+    const relationship = leftValue === rightValue ? "the same as" : leftValue > rightValue ? "higher than" : "lower than";
+    return {
+      id: `calculation:${metric}:comparison`,
+      response: {
+        status: "supported",
+        answer: `${left!.entity.name}'s ${left!.label} is ${formatMetricValue(left!, currencyCode)}, which is ${relationship} ${right!.entity.name}'s ${right!.label} of ${formatMetricValue(right!, currencyCode)}.`,
+        supportingEvidence: [],
+        limitations: [],
+        referencedEntities: targets.map((item) => item.entity),
+        calculations: targets,
+      },
+    };
+  }
+
+  const calculation = targets[0]!;
+  return {
+    id: `calculation:${metric}:${calculation.entity.id ?? "account"}`,
+    response: {
+      status: "supported",
+      answer: `${calculation.entity.name}'s ${calculation.label} is ${formatMetricValue(calculation, currencyCode)}. The result comes directly from the loaded inputs shown below.`,
+      supportingEvidence: [],
+      limitations: [],
+      referencedEntities: [calculation.entity],
+      calculations: [calculation],
+    },
+  };
 }
 
 function unsupported(
@@ -357,12 +646,7 @@ export function inferMarketingChatIntent(
   question: string,
   history: readonly ChatConversationMessage[] = [],
 ): MarketingChatIntent {
-  const normalize = (value: string) =>
-    value
-      .normalize("NFKC")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
+  const normalize = normalizedText;
   const normalized = normalize(question);
   const recentUserContext = history
     .filter((message) => message.role === "user")

@@ -19,6 +19,44 @@ export type CalculatedGoogleAdsMetrics = {
   roas: number;
 };
 
+export const GOOGLE_ADS_METRIC_KEYS = [
+  "spend",
+  "impressions",
+  "clicks",
+  "ctr",
+  "cpc",
+  "conversions",
+  "conversionRate",
+  "cpa",
+  "conversionValue",
+  "roas",
+] as const;
+
+export type GoogleAdsMetricKey = (typeof GOOGLE_ADS_METRIC_KEYS)[number];
+export type GoogleAdsMetricUnit = "currency" | "percent" | "count" | "ratio";
+export type GoogleAdsCalculationInput = Omit<
+  GoogleAdsMetrics,
+  "conversionValue"
+> & {
+  conversionValue?: number | null;
+};
+
+export type GoogleAdsMetricCalculation = {
+  metric: GoogleAdsMetricKey;
+  label: string;
+  formula: string;
+  inputs: Array<{
+    key: keyof GoogleAdsCalculationInput;
+    label: string;
+    value: number;
+    unit: GoogleAdsMetricUnit;
+  }>;
+  unit: GoogleAdsMetricUnit;
+} & (
+  | { status: "calculated"; value: number }
+  | { status: "insufficient_data"; reason: string }
+);
+
 export type GoogleAdsCampaign = {
   id: string;
   name: string;
@@ -80,34 +118,195 @@ export type GoogleAdsConversion = {
   conversionValue: number;
 };
 
-export function getCtr(metrics: GoogleAdsMetrics) {
-  if (metrics.impressions === 0) return 0;
+const METRIC_DEFINITIONS: Record<
+  GoogleAdsMetricKey,
+  {
+    label: string;
+    formula: string;
+    unit: GoogleAdsMetricUnit;
+    inputs: Array<keyof GoogleAdsCalculationInput>;
+    denominator?: keyof GoogleAdsCalculationInput;
+  }
+> = {
+  spend: {
+    label: "Spend",
+    formula: "cost",
+    unit: "currency",
+    inputs: ["cost"],
+  },
+  impressions: {
+    label: "Impressions",
+    formula: "impressions",
+    unit: "count",
+    inputs: ["impressions"],
+  },
+  clicks: {
+    label: "Clicks",
+    formula: "clicks",
+    unit: "count",
+    inputs: ["clicks"],
+  },
+  ctr: {
+    label: "CTR",
+    formula: "clicks / impressions × 100",
+    unit: "percent",
+    inputs: ["clicks", "impressions"],
+    denominator: "impressions",
+  },
+  cpc: {
+    label: "CPC",
+    formula: "spend / clicks",
+    unit: "currency",
+    inputs: ["cost", "clicks"],
+    denominator: "clicks",
+  },
+  conversions: {
+    label: "Conversions",
+    formula: "conversions",
+    unit: "count",
+    inputs: ["conversions"],
+  },
+  conversionRate: {
+    label: "Conversion rate",
+    formula: "conversions / clicks × 100",
+    unit: "percent",
+    inputs: ["conversions", "clicks"],
+    denominator: "clicks",
+  },
+  cpa: {
+    label: "CPA",
+    formula: "spend / conversions",
+    unit: "currency",
+    inputs: ["cost", "conversions"],
+    denominator: "conversions",
+  },
+  conversionValue: {
+    label: "Conversion value",
+    formula: "conversion value",
+    unit: "currency",
+    inputs: ["conversionValue"],
+  },
+  roas: {
+    label: "ROAS",
+    formula: "conversion value / spend",
+    unit: "ratio",
+    inputs: ["conversionValue", "cost"],
+    denominator: "cost",
+  },
+};
 
-  return (metrics.clicks / metrics.impressions) * 100;
+const INPUT_LABELS: Record<keyof GoogleAdsCalculationInput, string> = {
+  impressions: "Impressions",
+  clicks: "Clicks",
+  cost: "Spend",
+  conversions: "Conversions",
+  conversionValue: "Conversion value",
+};
+
+function inputUnit(
+  key: keyof GoogleAdsCalculationInput,
+): GoogleAdsMetricUnit {
+  return key === "cost" || key === "conversionValue" ? "currency" : "count";
+}
+
+export function calculateGoogleAdsMetric(
+  metrics: GoogleAdsCalculationInput,
+  metric: GoogleAdsMetricKey,
+): GoogleAdsMetricCalculation {
+  const definition = METRIC_DEFINITIONS[metric];
+  const missingInput = definition.inputs.find(
+    (key) => !Number.isFinite(metrics[key]),
+  );
+  const inputs: GoogleAdsMetricCalculation["inputs"] = [];
+  for (const key of definition.inputs) {
+    const value = metrics[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      inputs.push({ key, label: INPUT_LABELS[key], value, unit: inputUnit(key) });
+    }
+  }
+  const base = {
+    metric,
+    label: definition.label,
+    formula: definition.formula,
+    inputs,
+    unit: definition.unit,
+  };
+
+  if (missingInput) {
+    return {
+      ...base,
+      status: "insufficient_data",
+      reason: `${INPUT_LABELS[missingInput]} is not available.`,
+    };
+  }
+
+  if (definition.denominator && metrics[definition.denominator] === 0) {
+    return {
+      ...base,
+      status: "insufficient_data",
+      reason: `${INPUT_LABELS[definition.denominator]} is zero, so ${definition.label} is undefined.`,
+    };
+  }
+
+  const value = (() => {
+    switch (metric) {
+      case "spend":
+        return metrics.cost;
+      case "impressions":
+        return metrics.impressions;
+      case "clicks":
+        return metrics.clicks;
+      case "ctr":
+        return (metrics.clicks / metrics.impressions) * 100;
+      case "cpc":
+        return metrics.cost / metrics.clicks;
+      case "conversions":
+        return metrics.conversions;
+      case "conversionRate":
+        return (metrics.conversions / metrics.clicks) * 100;
+      case "cpa":
+        return metrics.cost / metrics.conversions;
+      case "conversionValue":
+        return metrics.conversionValue as number;
+      case "roas":
+        return (metrics.conversionValue as number) / metrics.cost;
+    }
+  })();
+
+  if (!Number.isFinite(value)) {
+    return {
+      ...base,
+      status: "insufficient_data",
+      reason: `${definition.label} could not be calculated from the available values.`,
+    };
+  }
+
+  return { ...base, status: "calculated", value };
+}
+
+export function getCtr(metrics: GoogleAdsMetrics) {
+  const result = calculateGoogleAdsMetric(metrics, "ctr");
+  return result.status === "calculated" ? result.value : 0;
 }
 
 export function getCpc(metrics: GoogleAdsMetrics) {
-  if (metrics.clicks === 0) return 0;
-
-  return metrics.cost / metrics.clicks;
+  const result = calculateGoogleAdsMetric(metrics, "cpc");
+  return result.status === "calculated" ? result.value : 0;
 }
 
 export function getConversionRate(metrics: GoogleAdsMetrics) {
-  if (metrics.clicks === 0) return 0;
-
-  return (metrics.conversions / metrics.clicks) * 100;
+  const result = calculateGoogleAdsMetric(metrics, "conversionRate");
+  return result.status === "calculated" ? result.value : 0;
 }
 
 export function getCpa(metrics: GoogleAdsMetrics) {
-  if (metrics.conversions === 0) return 0;
-
-  return metrics.cost / metrics.conversions;
+  const result = calculateGoogleAdsMetric(metrics, "cpa");
+  return result.status === "calculated" ? result.value : 0;
 }
 
 export function getRoas(metrics: GoogleAdsMetrics) {
-  if (metrics.cost === 0) return 0;
-
-  return metrics.conversionValue / metrics.cost;
+  const result = calculateGoogleAdsMetric(metrics, "roas");
+  return result.status === "calculated" ? result.value : 0;
 }
 
 export function calculateGoogleAdsMetrics(

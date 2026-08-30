@@ -28,6 +28,7 @@ import {
   buildMarketingChatPrompt,
   marketingChatRequestSchema,
   marketingChatResponseSchema,
+  resolveDeterministicCalculation,
   selectGroundedChatCandidates,
   validateGroundedChatResponse,
   type GroundedChatCandidate,
@@ -141,6 +142,21 @@ export async function POST(request: Request) {
 
   let relevantChatCandidates: GroundedChatCandidate[] | undefined;
   if (chatRequest) {
+    const calculation = resolveDeterministicCalculation(
+      chatRequest.question,
+      analysis,
+    );
+    if (calculation) {
+      const validation = validateGroundedChatResponse(calculation.response, [calculation]);
+      if (!validation.success) {
+        return errorResponse(
+          "The prepared calculation answer failed grounded validation.",
+          500,
+        );
+      }
+      return Response.json(validation.response);
+    }
+
     const groundedCandidates = buildGroundedChatCandidates(
       analysis,
       dailyData.dailyMetrics as GoogleAdsDailyMetric[],
