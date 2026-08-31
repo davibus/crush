@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
 import AccountAudit from "@/app/components/account-audit";
+import GA4ContextPanel from "@/app/components/ga4-context-panel";
 import KpiOverview from "@/app/components/kpi-overview";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
 import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
@@ -20,11 +21,16 @@ import {
 } from "@/lib/google-ads";
 import { runAccountAudit } from "@/lib/account-audit";
 import { getMarketingData } from "@/lib/marketing-data-source";
+import { buildPaidMediaAnalyticsContext } from "@/lib/paid-media-context";
 
 export default async function Home() {
   await connection();
   const marketingData = await getMarketingData();
   const data = marketingData.campaignData;
+  const paidMediaContext =
+    marketingData.ga4.status === "available"
+      ? buildPaidMediaAnalyticsContext(data, marketingData.ga4.data)
+      : undefined;
 
   const totals = aggregateGoogleAdsMetrics(
     data.campaigns.map((campaign) => campaign.metrics),
@@ -80,6 +86,11 @@ export default async function Home() {
             }
           />
         </div>
+
+        <GA4ContextPanel
+          ga4={marketingData.ga4}
+          paidMedia={paidMediaContext}
+        />
 
         <div className="mb-8">
           <MarketingPerformanceCharts

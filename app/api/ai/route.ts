@@ -23,6 +23,7 @@ import {
 } from "@/lib/marketing-data-chat";
 import { marketingInsightsResponseSchema } from "@/lib/marketing-insights";
 import { getMarketingData } from "@/lib/marketing-data-source";
+import { buildPaidMediaAnalyticsContext } from "@/lib/paid-media-context";
 import {
   extractOpenAIStructuredResponse,
   type OpenAIStructuredResponse,
@@ -76,6 +77,14 @@ function analysisSummary(analysis: PreparedCampaignPerformanceAnalysis) {
     unavailableDimensions: Object.entries(analysis.dimensionAvailability)
       .filter(([, available]) => !available)
       .map(([dimension]) => dimension),
+    webAnalytics: analysis.webAnalytics
+      ? {
+          matchedCampaigns: analysis.webAnalytics.campaignComparisons.length,
+          paidTrafficSources: analysis.webAnalytics.paidTrafficSources.length,
+          sessions: analysis.webAnalytics.ga4Summary.sessions,
+          keyEvents: analysis.webAnalytics.ga4Summary.keyEvents,
+        }
+      : undefined,
   };
 }
 
@@ -121,6 +130,13 @@ export async function POST(request: Request) {
   }
 
   const marketingData = await getMarketingData();
+  const webAnalytics =
+    marketingData.ga4.status === "available"
+      ? buildPaidMediaAnalyticsContext(
+          marketingData.campaignData,
+          marketingData.ga4.data,
+        )
+      : undefined;
   const analysis = prepareCampaignPerformanceAnalysis({
     campaignData: marketingData.campaignData,
     conversions: marketingData.conversions,
@@ -128,6 +144,7 @@ export async function POST(request: Request) {
     geographies: marketingData.geographies,
     keywords: marketingData.keywords,
     searchTerms: marketingData.searchTerms,
+    webAnalytics,
   });
 
   let relevantChatCandidates: GroundedChatCandidate[] | undefined;

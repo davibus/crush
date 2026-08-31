@@ -111,6 +111,7 @@ assert.deepEqual(
     devices: false,
     keywords: false,
     searchTerms: false,
+    webAnalytics: false,
   },
   "The incomplete dataset did not report unavailable dimensions.",
 );

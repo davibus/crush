@@ -16,6 +16,7 @@ import {
   type MarketingEvidence,
   type MarketingInsight,
 } from "./marketing-insights.ts";
+import type { PaidMediaAnalyticsContext } from "./paid-media-context.ts";
 
 export const CAMPAIGN_ANALYSIS_CATEGORIES = [
   "high_cpa",
@@ -64,6 +65,7 @@ export type CampaignPerformanceInput = {
   devices?: readonly GoogleAdsDevice[];
   keywords?: readonly GoogleAdsKeyword[];
   searchTerms?: readonly GoogleAdsSearchTerm[];
+  webAnalytics?: PaidMediaAnalyticsContext;
 };
 
 type CalculatedEntity<T> = T & { metrics: CalculatedGoogleAdsMetrics };
@@ -95,6 +97,7 @@ export type PreparedCampaignPerformanceAnalysis = {
     devices: boolean;
     keywords: boolean;
     searchTerms: boolean;
+    webAnalytics: boolean;
   };
   campaigns: Array<
     CalculatedEntity<
@@ -106,6 +109,7 @@ export type PreparedCampaignPerformanceAnalysis = {
   devices: Array<CalculatedEntity<Omit<GoogleAdsDevice, keyof GoogleAdsMetrics>>>;
   keywords: Array<CalculatedEntity<Omit<GoogleAdsKeyword, keyof GoogleAdsMetrics>>>;
   searchTerms: Array<CalculatedEntity<Omit<GoogleAdsSearchTerm, keyof GoogleAdsMetrics>>>;
+  webAnalytics?: PaidMediaAnalyticsContext;
   candidates: CampaignAnalysisCandidate[];
 };
 
@@ -676,6 +680,7 @@ export function prepareCampaignPerformanceAnalysis(
       devices: devices.length > 0,
       keywords: keywords.length > 0,
       searchTerms: searchTerms.length > 0,
+      webAnalytics: Boolean(input.webAnalytics),
     },
     campaigns,
     conversions,
@@ -683,6 +688,7 @@ export function prepareCampaignPerformanceAnalysis(
     devices,
     keywords,
     searchTerms,
+    ...(input.webAnalytics ? { webAnalytics: input.webAnalytics } : {}),
     candidates,
   };
 }
@@ -703,6 +709,7 @@ export function buildCampaignAnalysisPrompt(
     "Never state or imply an unproved cause. In particular, do not claim landing-page quality, user intent, competitor behavior, audience fatigue, or any other fact absent from the candidate.",
     "Recommendations may call for investigation or testing only when the candidate's actionDirection does so; do not turn a hypothesis into an observation.",
     "Do not infer any dimension finding when its dimensionAvailability value is false.",
+    "The optional webAnalytics object is GA4 context shown alongside paid-media data. Use it only to contextualize an already-supported candidate; never reconcile Ads conversions with GA4 key events, infer attribution, or create a new finding from GA4 alone.",
     "If no candidate supports the request, return an empty insights array. Prioritize the most actionable supported candidates and return no more than five insights.",
     JSON.stringify(analysis),
   ].join("\n\n");

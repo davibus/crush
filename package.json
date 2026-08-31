@@ -18,9 +18,11 @@
     "verify:calculations": "node --experimental-strip-types scripts/verify-marketing-calculations.ts",
     "verify:audit": "node --experimental-strip-types scripts/verify-account-audit.ts",
     "verify:score": "node --experimental-strip-types scripts/verify-account-score.ts",
-    "verify:google-ads-api": "node --conditions=react-server --experimental-strip-types scripts/verify-google-ads-api.ts"
+    "verify:google-ads-api": "node --conditions=react-server --experimental-strip-types scripts/verify-google-ads-api.ts",
+    "verify:ga4": "node --conditions=react-server --experimental-strip-types scripts/verify-ga4.ts"
   },
   "dependencies": {
+    "@google-analytics/data": "^7.0.0",
     "next": "16.3.3",
     "openai": "^7.8.0",
     "papaparse": "^5.7.0",

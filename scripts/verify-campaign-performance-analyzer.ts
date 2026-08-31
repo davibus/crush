@@ -343,6 +343,7 @@ assert.deepEqual(
     devices: false,
     keywords: false,
     searchTerms: false,
+    webAnalytics: false,
   },
   "Missing optional datasets were not handled safely.",
 );

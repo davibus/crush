@@ -35,6 +35,20 @@ Customer IDs may contain dashes in the environment file; Crush normalizes and va
 
 If live credentials or an API request fail, the dashboard displays a warning and safely falls back to the sample dataset. Server logs contain the diagnostic message, but OAuth credentials and access tokens are never returned to the browser.
 
+## Optional GA4 context
+
+Crush can also load GA4 sessions, users, key events, landing pages, and traffic
+sources through the official Google Analytics Data API. When GA4 returns a
+Google Ads campaign ID, the dashboard shows the GA4 site outcomes beside the
+matching paid-media campaign without treating the two attribution systems as
+equivalent.
+
+GA4 is independent of the Google Ads data-source setting. Leave all `GA4_*`
+variables empty to run without it, or follow the exact service-account and GA4
+property instructions in [docs/ga4-setup.md](docs/ga4-setup.md). Invalid or
+incomplete GA4 configuration is reported in the GA4 panel while all existing
+paid-media features continue to load.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

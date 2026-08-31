@@ -17,6 +17,12 @@ type AiResponse = {
     candidateCount: number;
     candidateCategories: string[];
     unavailableDimensions: string[];
+    webAnalytics?: {
+      matchedCampaigns: number;
+      paidTrafficSources: number;
+      sessions: number;
+      keyEvents: number;
+    };
   };
 };
 
@@ -134,6 +140,13 @@ export default function MarketingInsightsWorkspace({
           {analysis.unavailableDimensions.length > 0 ? (
             <p className="mt-1 text-blue-800">
               No loaded data: {analysis.unavailableDimensions.join(", ")}.
+            </p>
+          ) : null}
+          {analysis.webAnalytics ? (
+            <p className="mt-1 text-blue-800">
+              GA4 context: {analysis.webAnalytics.sessions.toLocaleString()} sessions,
+              {" "}{analysis.webAnalytics.keyEvents.toLocaleString()} key events,
+              {" "}{analysis.webAnalytics.matchedCampaigns} exact campaign-ID matches.
             </p>
           ) : null}
         </div>
