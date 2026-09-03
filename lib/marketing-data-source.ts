@@ -149,11 +149,19 @@ export async function getMarketingData(
       ga4,
     };
   } catch (error) {
-    console.error("Live Google Ads data load failed; using sample data.", {
-      errorName: error instanceof Error ? error.name : "UnknownError",
-      status: error instanceof GoogleAdsApiError ? error.status : undefined,
-      message: error instanceof Error ? error.message : "Unknown failure",
-    });
+    const diagnostic = error instanceof GoogleAdsApiError
+      ? {
+          errorName: error.name,
+          status: error.status,
+          code: error.code,
+          requestId: error.requestId,
+          failures: error.failures,
+          message: error.message,
+        }
+      : { errorName: "UnknownError", message: "Unknown failure" };
+    console.error(
+      `Live Google Ads data load failed; using sample data. ${JSON.stringify(diagnostic)}`,
+    );
     return {
       ...sampleData(
         "live",

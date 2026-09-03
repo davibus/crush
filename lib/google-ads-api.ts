@@ -25,6 +25,7 @@ const ALLOWED_DATE_RANGES = new Set([
   "THIS_MONTH",
   "LAST_MONTH",
 ]);
+const CUSTOM_DATE_RANGE = /^(\d{4}-\d{2}-\d{2}):(\d{4}-\d{2}-\d{2})$/;
 
 export type GoogleAdsApiConfig = {
   clientId: string;
@@ -53,16 +54,35 @@ export type LiveGoogleAdsData = {
 type FetchImplementation = typeof fetch;
 type GoogleAdsRow = Record<string, unknown>;
 
+export type GoogleAdsFailureDetail = {
+  code?: string;
+  message?: string;
+  fieldPath?: string;
+};
+
+export type GoogleAdsErrorDetails = {
+  codes: string[];
+  requestId?: string;
+  failures: GoogleAdsFailureDetail[];
+};
+
 export class GoogleAdsApiError extends Error {
   readonly status?: number;
+  readonly code?: string;
+  readonly requestId?: string;
+  readonly failures?: GoogleAdsFailureDetail[];
 
   constructor(
     message: string,
     status?: number,
+    details?: GoogleAdsErrorDetails,
   ) {
     super(message);
     this.name = "GoogleAdsApiError";
     this.status = status;
+    this.code = details?.codes.join(", ") || undefined;
+    this.requestId = details?.requestId;
+    this.failures = details?.failures.length ? details.failures : undefined;
   }
 }
 
@@ -169,7 +189,156 @@ function dimensionBase(row: GoogleAdsRow, suffix: string) {
   };
 }
 
-async function responseJson(response: Response, service: string): Promise<unknown> {
+function redactSensitiveText(value: string, secrets: readonly string[]): string {
+  let sanitized = value;
+  for (const secret of secrets) {
+    if (secret) sanitized = sanitized.replaceAll(secret, "[REDACTED]");
+  }
+  return sanitized
+    .replace(/Bearer\s+[^\s,;]+/gi, "Bearer [REDACTED]")
+    .replace(
+      /((?:developer[-_\s]?token|access[-_\s]?token|refresh[-_\s]?token|client[-_\s]?secret|authorization)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi,
+      "$1[REDACTED]",
+    );
+}
+
+function googleAdsErrorCode(value: unknown): string | undefined {
+  const entries = Object.entries(object(value));
+  if (!entries.length) return undefined;
+  return entries
+    .map(([category, enumValue]) => `${category}.${text(enumValue)}`)
+    .filter((value) => !value.endsWith("."))
+    .join(", ") || undefined;
+}
+
+function googleAdsFieldPath(value: unknown): string | undefined {
+  const elements = object(value).fieldPathElements;
+  if (!Array.isArray(elements)) return undefined;
+  const path = elements
+    .map((element) => {
+      const part = object(element);
+      const fieldName = text(part.fieldName);
+      const index = typeof part.index === "number" || typeof part.index === "string"
+        ? `[${part.index}]`
+        : "";
+      return fieldName ? `${fieldName}${index}` : "";
+    })
+    .filter(Boolean)
+    .join(".");
+  return path || undefined;
+}
+
+function responseError(body: unknown): Record<string, unknown> {
+  const candidates = Array.isArray(body) ? body : [body];
+  for (const candidate of candidates) {
+    const error = object(object(candidate).error);
+    if (Object.keys(error).length) return error;
+  }
+  return {};
+}
+
+function googleAdsErrorDetails(
+  body: unknown,
+  response: Response,
+  secrets: readonly string[],
+): GoogleAdsErrorDetails {
+  const topLevelError = responseError(body);
+  const codes = new Set<string>();
+  const status = redactSensitiveText(text(topLevelError.status), secrets);
+  if (status) codes.add(status);
+
+  let requestId = response.headers.get("request-id")
+    || response.headers.get("x-request-id")
+    || undefined;
+  const failures: GoogleAdsFailureDetail[] = [];
+  const details = Array.isArray(topLevelError.details) ? topLevelError.details : [];
+
+  for (const detailValue of details) {
+    const detail = object(detailValue);
+    const detailRequestId = text(detail.requestId);
+    if (!requestId && detailRequestId) requestId = detailRequestId;
+
+    const reason = redactSensitiveText(text(detail.reason), secrets);
+    const domain = redactSensitiveText(text(detail.domain), secrets);
+    const metadata = object(detail.metadata);
+    const metadataParts = [
+      ["domain", domain],
+      ["service", text(metadata.service)],
+      ["service title", text(metadata.serviceTitle)],
+      ["consumer", text(metadata.consumer)],
+      ["activation URL", text(metadata.activationUrl)],
+    ]
+      .filter((entry): entry is [string, string] => Boolean(entry[1]))
+      .map(([label, value]) => `${label}: ${redactSensitiveText(value, secrets)}`);
+    if (reason) codes.add(reason);
+    if (reason || metadataParts.length) {
+      failures.push({
+        ...(reason ? { code: reason } : {}),
+        ...(metadataParts.length ? { message: metadataParts.join("; ") } : {}),
+      });
+    }
+
+    const errors = Array.isArray(detail.errors) ? detail.errors : [];
+    for (const failureValue of errors) {
+      const failure = object(failureValue);
+      const code = googleAdsErrorCode(failure.errorCode);
+      if (code) codes.add(redactSensitiveText(code, secrets));
+      const message = redactSensitiveText(text(failure.message), secrets) || undefined;
+      const fieldPath = googleAdsFieldPath(failure.location);
+      if (code || message || fieldPath) {
+        failures.push({
+          ...(code ? { code: redactSensitiveText(code, secrets) } : {}),
+          ...(message ? { message } : {}),
+          ...(fieldPath ? { fieldPath } : {}),
+        });
+      }
+    }
+
+
+    const violations = [
+      ...(Array.isArray(detail.fieldViolations) ? detail.fieldViolations : []),
+      ...(Array.isArray(detail.violations) ? detail.violations : []),
+    ];
+    for (const violationValue of violations) {
+      const violation = object(violationValue);
+      const code = redactSensitiveText(text(violation.type), secrets) || undefined;
+      const message = redactSensitiveText(text(violation.description), secrets) || undefined;
+      const fieldPath = redactSensitiveText(
+        text(violation.field, text(violation.subject)),
+        secrets,
+      ) || undefined;
+      if (code) codes.add(code);
+      if (code || message || fieldPath) failures.push({ code, message, fieldPath });
+    }
+  }
+
+  return {
+    codes: [...codes],
+    ...(requestId ? { requestId: redactSensitiveText(requestId, secrets) } : {}),
+    failures,
+  };
+}
+
+function googleAdsErrorMessage(
+  baseMessage: string,
+  details: GoogleAdsErrorDetails,
+): string {
+  const diagnostics: string[] = [];
+  if (details.codes.length) diagnostics.push(`code: ${details.codes.join(", ")}`);
+  if (details.requestId) diagnostics.push(`request ID: ${details.requestId}`);
+  for (const failure of details.failures) {
+    const label = [failure.code, failure.message].filter(Boolean).join(": ");
+    const field = failure.fieldPath ? `field: ${failure.fieldPath}` : "";
+    diagnostics.push(`failure: ${[label, field].filter(Boolean).join("; ")}`);
+  }
+  return diagnostics.length ? `${baseMessage} (${diagnostics.join(" | ")})` : baseMessage;
+}
+
+async function responseJson(
+  response: Response,
+  service: string,
+  secrets: readonly string[] = [],
+): Promise<unknown> {
   let body: unknown;
   try {
     body = await response.json();
@@ -177,8 +346,16 @@ async function responseJson(response: Response, service: string): Promise<unknow
     throw new GoogleAdsApiError(`${service} returned an unreadable response.`, response.status);
   }
   if (!response.ok) {
-    const error = object(object(body).error);
-    const message = text(error.message, `${service} request failed.`);
+    const error = responseError(body);
+    const message = redactSensitiveText(text(error.message, `${service} request failed.`), secrets);
+    if (service === "Google Ads API") {
+      const details = googleAdsErrorDetails(body, response, secrets);
+      throw new GoogleAdsApiError(
+        googleAdsErrorMessage(message, details),
+        response.status,
+        details,
+      );
+    }
     throw new GoogleAdsApiError(message, response.status);
   }
   return body;
@@ -196,7 +373,11 @@ async function accessToken(config: GoogleAdsApiConfig, fetcher: FetchImplementat
     }),
     cache: "no-store",
   });
-  const body = object(await responseJson(response, "Google OAuth"));
+  const body = object(await responseJson(
+    response,
+    "Google OAuth",
+    [config.clientSecret, config.refreshToken, config.developerToken],
+  ));
   const token = text(body.access_token);
   if (!token) throw new GoogleAdsApiError("Google OAuth response did not include an access token.");
   return token;
@@ -219,7 +400,11 @@ async function search(
     `${GOOGLE_ADS_API_ORIGIN}/${config.apiVersion}/customers/${config.customerId}/googleAds:searchStream`,
     { method: "POST", headers, body: JSON.stringify({ query }), cache: "no-store" },
   );
-  const body = await responseJson(response, "Google Ads API");
+  const body = await responseJson(
+    response,
+    "Google Ads API",
+    [token, config.developerToken, config.refreshToken, config.clientSecret],
+  );
   if (!Array.isArray(body)) throw new GoogleAdsApiError("Google Ads API returned an unexpected response shape.");
   return body.flatMap((batch) => {
     const results = object(batch).results;
@@ -234,9 +419,40 @@ const metricFields = [
   "metrics.conversions",
   "metrics.conversions_value",
 ].join(", ");
+const conversionMetricFields = [
+  "metrics.conversions",
+  "metrics.conversions_value",
+].join(", ");
 
-function query(fields: string, resource: string, dateRange: string): string {
-  return `SELECT ${fields}, ${metricFields} FROM ${resource} WHERE segments.date DURING ${dateRange}`;
+function query(
+  fields: string,
+  resource: string,
+  dateRange: string,
+  metrics = metricFields,
+): string {
+  const customRange = CUSTOM_DATE_RANGE.exec(dateRange);
+  const dateFilter = customRange
+    ? `segments.date BETWEEN '${customRange[1]}' AND '${customRange[2]}'`
+    : `segments.date DURING ${dateRange}`;
+  return `SELECT ${fields}, ${metrics} FROM ${resource} WHERE ${dateFilter}`;
+}
+
+export function explicitGoogleAdsDateRange(
+  startDate: string,
+  endDate: string,
+): string {
+  const range = `${startDate}:${endDate}`;
+  const validDate = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
+  };
+  if (!CUSTOM_DATE_RANGE.test(range) || !validDate(startDate) || !validDate(endDate) || startDate > endDate) {
+    throw new GoogleAdsApiError(
+      "Google Ads custom dates must be valid YYYY-MM-DD values in chronological order.",
+    );
+  }
+  return range;
 }
 
 export async function fetchGoogleAdsData(
@@ -252,7 +468,7 @@ export async function fetchGoogleAdsData(
       search(config, token, query("campaign.id, campaign.name, ad_group.id, ad_group.name, search_term_view.resource_name, search_term_view.search_term, segments.keyword.info.text, segments.keyword.info.match_type", "search_term_view", config.dateRange), fetcher),
       search(config, token, query("campaign.id, campaign.name, geographic_view.resource_name, segments.geo_target_city", "geographic_view", config.dateRange), fetcher),
       search(config, token, query("campaign.id, campaign.name, segments.device", "campaign", config.dateRange), fetcher),
-      search(config, token, query("campaign.id, campaign.name, segments.conversion_action_name", "campaign", config.dateRange), fetcher),
+      search(config, token, query("campaign.id, campaign.name, segments.conversion_action_name", "campaign", config.dateRange, conversionMetricFields), fetcher),
     ]);
 
   const geoTargetResources = [

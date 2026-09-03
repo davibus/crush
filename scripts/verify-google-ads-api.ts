@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   fetchGoogleAdsData,
+  explicitGoogleAdsDateRange,
   GoogleAdsApiError,
   readGoogleAdsApiConfig,
   type GoogleAdsApiConfig,
@@ -77,7 +78,14 @@ const fetcher: typeof fetch = async (input, init) => {
   } else if (payload.query.includes("segments.device")) {
     row = { ...common, segments: { device: "MOBILE" } };
   } else if (payload.query.includes("segments.conversion_action_name")) {
-    row = { ...common, segments: { conversionActionName: "Qualified lead" } };
+    row = {
+      campaign,
+      metrics: {
+        conversions: baseMetrics.conversions,
+        conversionsValue: baseMetrics.conversionsValue,
+      },
+      segments: { conversionActionName: "Qualified lead" },
+    };
   } else if (payload.query.includes("FROM customer")) {
     row = { metrics: baseMetrics, segments: { date: "2026-08-29" } };
   } else {
@@ -102,6 +110,27 @@ assert.equal(result.searchTerms[0]?.searchTerm, "best marketing agency");
 assert.equal(result.geographies[0]?.location, "Lehi, Utah, United States");
 assert.equal(result.devices[0]?.device, "MOBILE");
 assert.equal(result.conversions[0]?.conversionAction, "Qualified lead");
+assert.equal(result.conversions[0]?.conversions, 10);
+assert.equal(result.conversions[0]?.conversionValue, 800);
+
+const conversionRequest = requests.find((request) =>
+  request.query?.includes("segments.conversion_action_name")
+);
+assert.ok(conversionRequest?.query, "Expected a conversion-action report request.");
+assert.match(conversionRequest.query, /metrics\.conversions/);
+assert.match(conversionRequest.query, /metrics\.conversions_value/);
+assert.doesNotMatch(
+  conversionRequest.query,
+  /metrics\.(?:clicks|impressions|cost_micros)/,
+);
+
+const campaignRequest = requests.find((request) =>
+  request.query?.includes("campaign_budget.amount_micros")
+);
+assert.ok(campaignRequest?.query, "Expected a campaign report request.");
+assert.match(campaignRequest.query, /metrics\.clicks/);
+assert.match(campaignRequest.query, /metrics\.impressions/);
+assert.match(campaignRequest.query, /metrics\.cost_micros/);
 
 for (const request of requests.slice(1)) {
   const headers = request.init?.headers as Record<string, string>;
@@ -130,6 +159,35 @@ assert.throws(
   () => readGoogleAdsApiConfig({ GOOGLE_ADS_CUSTOMER_ID: "not-an-id" }),
   GoogleAdsApiError,
 );
+assert.equal(
+  explicitGoogleAdsDateRange("2026-08-17", "2026-08-30"),
+  "2026-08-17:2026-08-30",
+);
+assert.throws(
+  () => explicitGoogleAdsDateRange("2026-08-30", "2026-08-17"),
+  /chronological order/,
+);
+assert.throws(
+  () => explicitGoogleAdsDateRange("2026-02-30", "2026-03-01"),
+  /valid YYYY-MM-DD/,
+);
+
+const requestCountBeforeCustomRange = requests.length;
+await fetchGoogleAdsData(
+  {
+    ...config,
+    dateRange: explicitGoogleAdsDateRange("2026-08-17", "2026-08-30"),
+  },
+  fetcher,
+);
+for (const request of requests.slice(requestCountBeforeCustomRange + 1)) {
+  if (!request.query?.includes("FROM geo_target_constant")) {
+    assert.match(
+      request.query ?? "",
+      /segments\.date BETWEEN '2026-08-17' AND '2026-08-30'/,
+    );
+  }
+}
 assert.throws(
   () => readGoogleAdsApiConfig({
     GOOGLE_ADS_CLIENT_ID: "id",
@@ -142,4 +200,85 @@ assert.throws(
   /GOOGLE_ADS_DATE_RANGE/,
 );
 
-console.log("Google Ads API verification passed: secure OAuth exchange, seven metric datasets, readable geography lookup, micros conversion, internal-model mapping, manager headers, and configuration validation.");
+const sensitiveValues = [
+  config.developerToken,
+  config.clientSecret,
+  config.refreshToken,
+  "short-lived-access-token",
+];
+const failingFetcher: typeof fetch = async (input) => {
+  if (String(input).includes("oauth2.googleapis.com")) {
+    return Response.json({ access_token: "short-lived-access-token" });
+  }
+  return Response.json(
+    [{
+      error: {
+        code: 403,
+        message: `Google Ads API request failed. Authorization: Bearer ${sensitiveValues[3]}`,
+        status: "PERMISSION_DENIED",
+        details: [
+          {
+            "@type": "type.googleapis.com/google.ads.googleads.v22.errors.GoogleAdsFailure",
+            requestId: "request-id-from-body",
+            errors: [
+              {
+                errorCode: { authorizationError: "CUSTOMER_NOT_ENABLED" },
+                message: `The customer is not enabled; developer-token=${config.developerToken}`,
+                location: {
+                  fieldPathElements: [
+                    { fieldName: "operations", index: 0 },
+                    { fieldName: "create" },
+                  ],
+                },
+              },
+            ],
+          },
+          {
+            "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+            reason: "SERVICE_DISABLED",
+            domain: "googleapis.com",
+            metadata: {
+              service: "googleads.googleapis.com",
+              consumer: "projects/123456789",
+              activationUrl: "https://console.example.test/enable",
+              unapprovedMetadata: config.clientSecret,
+            },
+          },
+        ],
+      },
+    }],
+    { status: 403, headers: { "request-id": "request-id-from-header" } },
+  );
+};
+
+await assert.rejects(
+  fetchGoogleAdsData(config, failingFetcher),
+  (error: unknown) => {
+    assert.ok(error instanceof GoogleAdsApiError);
+    assert.equal(error.status, 403);
+    assert.equal(
+      error.code,
+      "PERMISSION_DENIED, authorizationError.CUSTOMER_NOT_ENABLED, SERVICE_DISABLED",
+    );
+    assert.equal(error.requestId, "request-id-from-header");
+    assert.deepEqual(error.failures, [{
+      code: "authorizationError.CUSTOMER_NOT_ENABLED",
+      message: "The customer is not enabled; [REDACTED]=[REDACTED]",
+      fieldPath: "operations[0].create",
+    }, {
+      code: "SERVICE_DISABLED",
+      message: "domain: googleapis.com; service: googleads.googleapis.com; consumer: projects/123456789; activation URL: https://console.example.test/enable",
+    }]);
+    assert.match(error.message, /PERMISSION_DENIED/);
+    assert.match(error.message, /CUSTOMER_NOT_ENABLED/);
+    assert.match(error.message, /request ID: request-id-from-header/);
+    assert.match(error.message, /field: operations\[0\]\.create/);
+    for (const sensitiveValue of sensitiveValues) {
+      assert.doesNotMatch(error.message, new RegExp(sensitiveValue));
+    }
+    assert.doesNotMatch(error.message, /Bearer short-lived-access-token/);
+    return true;
+  },
+);
+
+console.log("Google Ads API verification passed: secure OAuth exchange, seven metric datasets, readable geography lookup, micros conversion, internal-model mapping, manager headers, configuration validation, and sanitized structured errors.");
