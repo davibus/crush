@@ -2,7 +2,10 @@
 
 
 
-These files provide mock Google Ads data for local development and testing before a live Google Ads API connection is added.
+These files provide the fictional Northstar Outdoor Co. Google Ads dataset used
+for the intentional portfolio demo, local development, fallback behavior, and
+repeatable verification. Live Google Ads integration remains available through
+server-only configuration.
 
 
 

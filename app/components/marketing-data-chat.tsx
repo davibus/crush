@@ -297,7 +297,7 @@ export default function MarketingDataChat({
   return (
     <section
       aria-labelledby="marketing-data-chat-heading"
-      className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm shadow-zinc-200/40"
+      className="min-w-0 overflow-hidden break-words rounded-2xl border border-zinc-200 bg-white shadow-sm shadow-zinc-200/40"
     >
       <header className="border-b border-zinc-200 px-5 py-5 sm:px-6">
         <div className="flex items-start gap-3">
@@ -307,7 +307,7 @@ export default function MarketingDataChat({
           >
             ✦
           </span>
-          <div>
+          <div className="min-w-0">
             <h2
               className="text-lg font-semibold text-zinc-950"
               id="marketing-data-chat-heading"
@@ -407,7 +407,7 @@ export default function MarketingDataChat({
             Specialist
           </label>
           <select
-            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-zinc-800 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 disabled:bg-zinc-100"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm font-medium text-zinc-800 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 disabled:bg-zinc-100 sm:w-auto sm:text-xs"
             disabled={isLoading}
             id="marketing-specialist"
             onChange={(event) => setSpecialistId(event.target.value as SpecialistSelectionId)}
@@ -421,9 +421,9 @@ export default function MarketingDataChat({
         <label className="sr-only" htmlFor="marketing-question">
           Ask a question about your marketing data
         </label>
-        <div className="flex items-end gap-3">
+        <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-end">
           <textarea
-            className="max-h-36 min-h-12 flex-1 resize-y rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 disabled:bg-zinc-100"
+            className="max-h-36 min-h-12 min-w-0 flex-1 resize-y rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 disabled:bg-zinc-100"
             disabled={isLoading}
             id="marketing-question"
             maxLength={MAX_CHAT_QUESTION_LENGTH}
@@ -434,7 +434,7 @@ export default function MarketingDataChat({
             value={question}
           />
           <button
-            className="min-h-12 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 w-full rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             disabled={isLoading || !question.trim()}
             type="submit"
           >

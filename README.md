@@ -2,18 +2,39 @@
 
 Crush is an AI marketing command center that turns Google Ads performance data into deterministic metrics, account audits, grounded recommendations, and conversational answers.
 
+## Portfolio demo
+
+The dashboard is designed to be useful on first open, without credentials or
+setup. It presents a cohesive marketing operating view with:
+
+- account KPIs, daily trends, campaign comparisons, and geographic performance
+- optional GA4 sessions, users, key events, traffic sources, and landing-page context
+- automated completed-period daily analysis and saved weekly reporting
+- a deterministic nine-category Google Ads account audit
+- structured, evidence-checked AI recommendations
+- specialist PPC, Analytics, CRO, SEO, and Marketing Strategist analysis
+- Ask Your Marketing Data for grounded conversational exploration
+
+By default, Crush loads the included fictional **Northstar Outdoor Co.** demo
+account. The dashboard labels this mode as **Demo data**; it is an intentional,
+safe portfolio experience rather than an error state. Deterministic metrics,
+charts, and the account audit work without Google or OpenAI credentials. Live
+automations and generative AI actions explain when their optional server-side
+configuration is unavailable.
+
+For a production-like demo, Google Ads can be switched to read-only live data
+with `GOOGLE_ADS_DATA_SOURCE=live`, and GA4 can be connected independently.
+Credentials and account identifiers remain server-only. If a live Google Ads
+request fails, the UI identifies the fallback and continues with demo data while
+technical diagnostics remain in server logs.
+
 ## Getting Started
 
-First, run the development server:
+Install dependencies and run the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

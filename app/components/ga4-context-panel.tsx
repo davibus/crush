@@ -16,15 +16,16 @@ export default function GA4ContextPanel({
     return (
       <section
         aria-labelledby="ga4-context-heading"
-        className="mb-8 rounded-xl border border-dashed border-zinc-300 bg-white p-6"
+        className="mb-8 rounded-2xl border border-dashed border-zinc-300 bg-white p-5 sm:p-6"
       >
-        <h2 className="text-lg font-semibold" id="ga4-context-heading">
-          GA4 site context
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold" id="ga4-context-heading">GA4 site context</h2>
+          <span className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-700">Not connected</span>
+        </div>
         <p className="mt-2 text-sm leading-6 text-zinc-600">
-          GA4 is optional and not configured. Add the server-only GA4 environment
-          variables to compare site sessions, users, key events, landing pages,
-          and traffic sources with paid-media reporting.
+          Paid-media reporting is ready to explore. Connect optional GA4 server
+          credentials to add site sessions, users, key events, landing pages,
+          and traffic sources to this view.
         </p>
       </section>
     );
@@ -34,11 +35,12 @@ export default function GA4ContextPanel({
     return (
       <section
         aria-labelledby="ga4-context-heading"
-        className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-6"
+        className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6"
       >
-        <h2 className="text-lg font-semibold" id="ga4-context-heading">
-          GA4 site context unavailable
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold" id="ga4-context-heading">GA4 site context unavailable</h2>
+          <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900">Connection issue</span>
+        </div>
         <p className="mt-2 text-sm leading-6 text-amber-900" role="alert">
           {ga4.message}
         </p>
@@ -65,9 +67,10 @@ export default function GA4ContextPanel({
             Site outcomes alongside platform-reported paid-media performance
           </p>
         </div>
-        <p className="text-xs text-zinc-500">
-          {data.dateRange.startDate} to {data.dateRange.endDate}
-        </p>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-800">Connected</span>
+          <span>{data.dateRange.startDate} to {data.dateRange.endDate}</span>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -92,12 +95,13 @@ export default function GA4ContextPanel({
             <h3 className="font-semibold">Top traffic sources</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[28rem] text-sm">
+              <caption className="sr-only">Top GA4 traffic sources</caption>
               <thead className="bg-zinc-50 text-left text-zinc-600">
                 <tr>
-                  <th className="px-5 py-2.5">Source / medium</th>
-                  <th className="px-5 py-2.5 text-right">Sessions</th>
-                  <th className="px-5 py-2.5 text-right">Key events</th>
+                  <th className="px-5 py-2.5" scope="col">Source / medium</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">Sessions</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">Key events</th>
                 </tr>
               </thead>
               <tbody>
@@ -114,6 +118,9 @@ export default function GA4ContextPanel({
                     <td className="px-5 py-3 text-right">{count(row.keyEvents)}</td>
                   </tr>
                 ))}
+                {data.trafficSources.length === 0 ? (
+                  <tr><td className="px-5 py-8 text-center text-zinc-500" colSpan={3}>No traffic-source rows were returned for this reporting window.</td></tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -124,12 +131,13 @@ export default function GA4ContextPanel({
             <h3 className="font-semibold">Top landing pages</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[28rem] text-sm">
+              <caption className="sr-only">Top GA4 landing pages</caption>
               <thead className="bg-zinc-50 text-left text-zinc-600">
                 <tr>
-                  <th className="px-5 py-2.5">Landing page</th>
-                  <th className="px-5 py-2.5 text-right">Sessions</th>
-                  <th className="px-5 py-2.5 text-right">Engagement</th>
+                  <th className="px-5 py-2.5" scope="col">Landing page</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">Sessions</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">Engagement</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,6 +155,9 @@ export default function GA4ContextPanel({
                     </td>
                   </tr>
                 ))}
+                {data.landingPages.length === 0 ? (
+                  <tr><td className="px-5 py-8 text-center text-zinc-500" colSpan={3}>No landing-page rows were returned for this reporting window.</td></tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -163,14 +174,15 @@ export default function GA4ContextPanel({
         </div>
         {paidMedia?.campaignComparisons.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[46rem] text-sm">
+              <caption className="sr-only">Matched Google Ads and GA4 campaign metrics</caption>
               <thead className="bg-zinc-50 text-left text-zinc-600">
                 <tr>
-                  <th className="px-5 py-2.5">Campaign</th>
-                  <th className="px-5 py-2.5 text-right">Ads clicks</th>
-                  <th className="px-5 py-2.5 text-right">Ads conversions</th>
-                  <th className="px-5 py-2.5 text-right">GA4 sessions</th>
-                  <th className="px-5 py-2.5 text-right">GA4 key events</th>
+                  <th className="px-5 py-2.5" scope="col">Campaign</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">Ads clicks</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">Ads conversions</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">GA4 sessions</th>
+                  <th className="px-5 py-2.5 text-right" scope="col">GA4 key events</th>
                 </tr>
               </thead>
               <tbody>

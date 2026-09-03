@@ -26,6 +26,8 @@ type MarketingPerformanceChartsProps = {
   timeSeries: TimeSeriesPoint[];
   campaigns: ComparisonPoint[];
   geographies: ComparisonPoint[];
+  dataSourceLabel?: string;
+  dateRangeLabel?: string;
 };
 
 type ChartCardProps = {
@@ -34,6 +36,7 @@ type ChartCardProps = {
   children: ReactNode;
   footer?: ReactNode;
   wide?: boolean;
+  hasData?: boolean;
 };
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
@@ -46,6 +49,7 @@ function ChartCard({
   children,
   footer,
   wide = false,
+  hasData = true,
 }: ChartCardProps) {
   return (
     <article
@@ -55,8 +59,21 @@ function ChartCard({
         <h3 className="font-semibold text-zinc-950">{title}</h3>
         <p className="mt-1 text-sm leading-5 text-zinc-500">{description}</p>
       </div>
-      <div className="h-72 w-full sm:h-80">{children}</div>
-      {footer ? <div className="mt-5">{footer}</div> : null}
+      {hasData ? (
+        <>
+          <div className="h-64 min-w-0 w-full sm:h-80">{children}</div>
+          {footer ? <div className="mt-5">{footer}</div> : null}
+        </>
+      ) : (
+        <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-5 text-center sm:h-80">
+          <div>
+            <p className="text-sm font-semibold text-zinc-800">No chart data available</p>
+            <p className="mt-1 max-w-sm text-sm leading-6 text-zinc-500">
+              This view will populate when the selected source returns data for the reporting window.
+            </p>
+          </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -110,7 +127,9 @@ function TimeSeriesTooltip({
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm shadow-lg">
-      <p className="font-medium text-zinc-900">{point.label}, 2025</p>
+      <p className="font-medium text-zinc-900">
+        {point.label}, {point.date.slice(0, 4)}
+      </p>
       <p className="mt-1 text-zinc-600">
         {metricLabel}: {formatMetricValue(point[metric], valueKind, currency)}
       </p>
@@ -215,6 +234,8 @@ export default function MarketingPerformanceCharts({
   timeSeries,
   campaigns,
   geographies,
+  dataSourceLabel = "Google Ads data",
+  dateRangeLabel = "Current reporting period",
 }: MarketingPerformanceChartsProps) {
   return (
     <section aria-labelledby="performance-charts-heading">
@@ -227,17 +248,17 @@ export default function MarketingPerformanceCharts({
             Marketing performance
           </h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Daily trends and campaign and location comparisons from the sample
-            Google Ads dataset
+            Daily trends and campaign and location comparisons from {dataSourceLabel.toLowerCase()}
           </p>
         </div>
         <p className="text-xs font-medium text-zinc-500">
-          Sample period · Aug 18–24, 2025
+          {dateRangeLabel}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ChartCard
+          hasData={timeSeries.length > 0}
           title="Spend over time"
           description="Daily account spend; hover or focus a point for the exact value."
         >
@@ -286,6 +307,7 @@ export default function MarketingPerformanceCharts({
         </ChartCard>
 
         <ChartCard
+          hasData={timeSeries.length > 0}
           title="Conversions over time"
           description="Daily conversions show changes in account outcome volume."
         >
@@ -319,6 +341,7 @@ export default function MarketingPerformanceCharts({
         </ChartCard>
 
         <ChartCard
+          hasData={timeSeries.length > 0}
           title="CPA over time"
           description="Daily spend divided by conversions; days without conversions show no point."
         >
@@ -364,6 +387,7 @@ export default function MarketingPerformanceCharts({
         </ChartCard>
 
         <ChartCard
+          hasData={timeSeries.length > 0}
           title="ROAS over time"
           description="Daily conversion value divided by spend; higher values indicate greater return."
         >
@@ -407,6 +431,7 @@ export default function MarketingPerformanceCharts({
         </ChartCard>
 
         <ChartCard
+          hasData={campaigns.length > 0}
           wide
           title="Campaign comparison"
           description="Spend and conversion value by campaign, ordered by conversion value; efficiency metrics are shown below and in the tooltip."
@@ -455,9 +480,10 @@ export default function MarketingPerformanceCharts({
         </ChartCard>
 
         <ChartCard
+          hasData={geographies.length > 0}
           wide
           title="Geographic performance"
-          description="Spend and conversion value for the locations represented in the geographic sample data."
+          description="Spend and conversion value for the locations represented in the loaded geographic data."
           footer={
             <ComparisonSummary
               currency={currency}

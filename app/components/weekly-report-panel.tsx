@@ -73,20 +73,27 @@ export default function WeeklyReportPanel() {
   }
 
   return (
-    <section aria-labelledby="weekly-report-heading" className="mb-8 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/40 sm:p-6">
+    <section aria-labelledby="weekly-report-heading" className="mb-8 min-w-0 break-words rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/40 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-zinc-950" id="weekly-report-heading">Weekly Marketing Report</h2>
           <p className="mt-1 text-sm text-zinc-500">A saved account-performance summary for the latest two completed 7-day periods</p>
         </div>
-        <button className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={isLoading} onClick={generateReport} type="button">
+        <button className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" disabled={isLoading} onClick={generateReport} type="button">
           {isLoading ? "Generating…" : "Generate Weekly Report"}
         </button>
       </div>
 
+      {isLoading && !report ? (
+        <div aria-live="polite" className="mt-5 grid gap-3" role="status">
+          <div className="h-20 animate-pulse rounded-xl bg-zinc-100 motion-reduce:animate-none" />
+          <p className="text-sm text-zinc-500">Checking for the latest saved weekly report…</p>
+        </div>
+      ) : null}
+
       {error ? <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</p> : null}
       {!report && !isLoading ? (
-        <p className="mt-5 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">No saved weekly report yet. Generate one now or let the protected weekly cron create it.</p>
+        <div className="mt-5 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center"><h3 className="text-sm font-semibold text-zinc-800">No saved weekly report yet</h3><p className="mx-auto mt-1 max-w-xl text-sm leading-6 text-zinc-500">Generate one from configured live sources, or let the protected weekly schedule create it automatically.</p></div>
       ) : null}
 
       {report ? (

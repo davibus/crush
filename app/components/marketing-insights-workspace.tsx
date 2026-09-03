@@ -86,7 +86,7 @@ export default function MarketingInsightsWorkspace({
   }
 
   return (
-    <section aria-labelledby="ai-insights-heading" className="mt-8">
+    <section aria-labelledby="ai-insights-heading" className="mt-8 min-w-0 break-words">
       <div className="mb-4">
         <h2
           className="text-lg font-semibold text-zinc-950"
@@ -111,7 +111,7 @@ export default function MarketingInsightsWorkspace({
             Analysis request
           </label>
           <textarea
-            className="mt-2 block min-h-24 w-full rounded-lg border border-zinc-300 p-3 text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
+            className="mt-2 block min-h-24 w-full resize-y rounded-lg border border-zinc-300 p-3 text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
             id="ai-prompt"
             maxLength={500}
             onChange={(event) => setPrompt(event.target.value)}
@@ -119,7 +119,7 @@ export default function MarketingInsightsWorkspace({
             value={prompt}
           />
           <button
-            className="mt-3 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-3 w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             disabled={isLoading || !prompt.trim()}
             type="submit"
           >

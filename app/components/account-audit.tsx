@@ -53,7 +53,7 @@ export default function AccountAudit({ audit }: { audit: AccountAuditResult }) {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {audit.categories.map((section) => (
           <article
-            className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/30"
+            className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm shadow-zinc-200/30"
             key={section.category}
           >
             <div className="flex items-start justify-between gap-3">
@@ -90,7 +90,7 @@ export default function AccountAudit({ audit }: { audit: AccountAuditResult }) {
                     <h4 className="mt-2 text-sm font-semibold text-zinc-900">
                       {finding.title}
                     </h4>
-                    <p className="mt-1 text-sm leading-5 text-zinc-600">
+                    <p className="mt-1 break-words text-sm leading-5 text-zinc-600">
                       {finding.description}
                     </p>
                     <dl className="mt-3 grid grid-cols-2 gap-2">
@@ -105,7 +105,7 @@ export default function AccountAudit({ audit }: { audit: AccountAuditResult }) {
                         </div>
                       ))}
                     </dl>
-                    <p className="mt-3 text-sm leading-5 text-zinc-700">
+                    <p className="mt-3 break-words text-sm leading-5 text-zinc-700">
                       <span className="font-medium">Recommendation:</span>{" "}
                       {finding.recommendation}
                     </p>

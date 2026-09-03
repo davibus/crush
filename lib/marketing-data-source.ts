@@ -57,8 +57,8 @@ function sampleData(requestedSource: MarketingDataSource, warning?: string): Mar
   return {
     source: "sample",
     requestedSource,
-    sourceLabel: "Sample Google Ads data",
-    dateRangeLabel: "Demo reporting period",
+    sourceLabel: "Demo Google Ads data",
+    dateRangeLabel: "Aug 18–24, 2025",
     ...(warning ? { warning } : {}),
     campaignData: googleAdsData as GoogleAdsSampleData,
     dailyMetrics: dailyData.dailyMetrics as GoogleAdsDailyMetric[],
