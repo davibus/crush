@@ -1,32 +1,45 @@
 # Crush
 
-Crush is an AI marketing command center that turns Google Ads performance data into deterministic metrics, account audits, grounded recommendations, and conversational answers.
+**Crush is an AI marketing command center that turns Google Ads performance and optional GA4 context into explainable decisions.** It combines a decision-focused dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows in one Next.js application.
 
-## Portfolio demo
+[Case study](docs/case-study.md) · [2–3 minute demo script](docs/demo-script.md) · [Portfolio/resume copy](docs/portfolio-entry.md) · [GitHub repository](https://github.com/davibus/crush)
 
-The dashboard is designed to be useful on first open, without credentials or
-setup. It presents a cohesive marketing operating view with:
+**Live demo:** TODO — deploy the application and add the verified public URL.
+
+**Demo video:** TODO — record and publish the walkthrough using the [demo script](docs/demo-script.md).
+
+<!-- After capture, insert: ![Crush AI Marketing Command Center dashboard](docs/screenshots/01-dashboard-overview.png) -->
+
+## Why I built it
+
+I built Crush as a personal learning and portfolio project to combine my hands-on digital marketing experience with AI-assisted modern application development. Marketing teams have plenty of metrics; the harder work is deciding which changes matter, keeping Google Ads and GA4 measurement boundaries clear, and turning evidence into an action a reviewer can trust.
+
+Crush explores a deterministic-first answer: application code owns calculations, thresholds, evidence, and limitations. OpenAI is used only in bounded structured workflows where prioritization adds value, and unsupported model output is rejected.
+
+> Crush is not presented as a client deployment. The included Northstar Outdoor Co. account is fictional, and this repository makes no claims about customers, revenue lift, cost savings, or production adoption.
+
+## Major capabilities
 
 - account KPIs, daily trends, campaign comparisons, and geographic performance
 - optional GA4 sessions, users, key events, traffic sources, and landing-page context
-- automated completed-period daily analysis and saved weekly reporting
+- completed-period daily analysis and evidence-linked weekly reporting
 - a deterministic nine-category Google Ads account audit
-- structured, evidence-checked AI recommendations
-- specialist PPC, Analytics, CRO, SEO, and Marketing Strategist analysis
-- Ask Your Marketing Data for grounded conversational exploration
+- OpenAI structured-output recommendations checked against precomputed candidates
+- grounded Ask Your Marketing Data calculations and bounded conversation history
+- typed PPC, Analytics, CRO, SEO, and Marketing Strategist workflows
+- read-only live Google Ads and GA4 adapters with server-only credentials
+- local JSON or private Vercel Blob persistence plus secret-protected cron routes
 
-By default, Crush loads the included fictional **Northstar Outdoor Co.** demo
-account. The dashboard labels this mode as **Demo data**; it is an intentional,
-safe portfolio experience rather than an error state. Deterministic metrics,
-charts, and the account audit work without Google or OpenAI credentials. Live
-automations and generative AI actions explain when their optional server-side
-configuration is unavailable.
+## Screenshot and demo
 
-For a production-like demo, Google Ads can be switched to read-only live data
-with `GOOGLE_ADS_DATA_SOURCE=live`, and GA4 can be connected independently.
-Credentials and account identifiers remain server-only. If a live Google Ads
-request fails, the UI identifies the fallback and continues with demo data while
-technical diagnostics remain in server logs.
+The dashboard is useful on first open without credentials. By default, it loads the included fictional **Northstar Outdoor Co.** account and visibly labels the experience as **Demo data**. Metrics, charts, the account audit, Ask Your Marketing Data, and specialist workflows work without Google or OpenAI credentials.
+
+- [View the full project case study](docs/case-study.md)
+- [Follow the recording-ready 2–3 minute demo script](docs/demo-script.md)
+- [Capture the eight recommended product screenshots](docs/screenshots/README.md)
+- [Browse the source repository](https://github.com/davibus/crush)
+
+For a production-like setup, Google Ads can switch to read-only live reporting with `GOOGLE_ADS_DATA_SOURCE=live`, while GA4 connects independently. If a live Google Ads request fails, the UI identifies the fallback and continues with demo data; technical diagnostics stay in server logs. AI Insights and optional daily/weekly prioritization explain when OpenAI is unavailable instead of blocking the deterministic product.
 
 ## Getting Started
 
@@ -119,21 +132,22 @@ specialists-to-strategist synthesis workflow. See
 routing, grounding safeguards, verification, and the experimental capabilities
 that were deliberately deferred.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Application architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Crush uses the Next.js 16 App Router: the main Server Component loads protected data and calculates the initial workspace, interactive Client Components handle charts and user actions, and Route Handlers run AI and reporting workflows. The stack includes React 19, TypeScript, Tailwind CSS 4, Recharts, Zod, the OpenAI Responses API, Google Ads REST reporting, the official GA4 Data API library, Vercel Cron, and private Vercel Blob storage. See the [case-study architecture diagram](docs/case-study.md#architecture-and-data-flow) for the full data flow.
 
-## Learn More
+## Project documentation
 
-To learn more about Next.js, take a look at the following resources:
+- [Project case study](docs/case-study.md)
+- [Demo script](docs/demo-script.md)
+- [Screenshot capture checklist](docs/screenshots/README.md)
+- [Portfolio and resume entry](docs/portfolio-entry.md)
+- [Daily Analysis behavior](docs/daily-analysis.md)
+- [Weekly Marketing Report behavior](docs/weekly-report.md)
+- [Specialist agent architecture](docs/specialist-agents.md)
+- [GA4 setup](docs/ga4-setup.md)
+- [Account score methodology](docs/account-score.md)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment note
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Crush requires a server-capable Next.js deployment for Route Handlers, protected integrations, and reporting workflows. `vercel.json` contains the current daily and weekly cron schedules; a Vercel deployment also needs private Blob storage for durable automation history. No verified production URL is stored in this repository yet.
