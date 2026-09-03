@@ -9,16 +9,27 @@ import {
   type MarketingChatResponse,
 } from "@/lib/marketing-data-chat";
 import type { MarketingEvidence } from "@/lib/marketing-insights";
+import type { SpecialistSelectionId } from "@/lib/specialist-agents";
 
 const STARTER_QUESTIONS = [
   "Why did CPA increase?",
-  "Which campaigns are performing best?",
-  "Which campaigns are wasting money?",
-  "Which cities have the highest conversion rate?",
-  "Where should budget increase?",
-  "Which search terms should become negatives?",
-  "What changed this week?",
+  "Why did sessions decline compared with the previous period?",
+  "How can we improve the landing-page conversion rate?",
+  "Why did organic traffic fall?",
+  "What are the top three marketing priorities for next week?",
 ] as const;
+
+const SPECIALIST_OPTIONS: ReadonlyArray<{
+  id: SpecialistSelectionId;
+  label: string;
+}> = [
+  { id: "auto", label: "Auto" },
+  { id: "ppc-analyst", label: "PPC Analyst" },
+  { id: "analytics-analyst", label: "Analytics Analyst" },
+  { id: "cro-analyst", label: "CRO Analyst" },
+  { id: "seo-analyst", label: "SEO Analyst" },
+  { id: "marketing-strategist", label: "Marketing Strategist / CMO" },
+];
 
 const MAX_VISIBLE_MESSAGES = 10;
 
@@ -64,9 +75,42 @@ function AssistantMessage({
 }) {
   return (
     <div>
+      {response.specialist ? (
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full bg-zinc-900 px-2.5 py-1 font-semibold text-white">
+            {response.specialist.name}
+          </span>
+          {response.workflow === "specialists_to_strategist" ? (
+            <span className="text-zinc-500">
+              Synthesized from {response.contributors?.map((agent) => agent.name).join(", ")}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-800">
         {response.answer}
       </p>
+
+      {response.specialistAnalysis?.recommendations.length ? (
+        <div className="mt-3 border-t border-zinc-200 pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Recommended actions
+          </p>
+          <ol className="mt-2 grid gap-2">
+            {response.specialistAnalysis.recommendations.map((recommendation, index) => (
+              <li className="rounded-lg bg-white p-2.5 text-xs leading-5 text-zinc-700 ring-1 ring-zinc-200" key={`${recommendation.action}-${index}`}>
+                <span className="mr-2 font-semibold text-zinc-950">{index + 1}.</span>
+                {recommendation.action}
+                {recommendation.hypothesisId ? (
+                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-900">
+                    Hypothesis-led
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
 
       {response.calculations?.length ? (
         <div className="mt-3 border-t border-zinc-200 pt-3">
@@ -164,6 +208,7 @@ export default function MarketingDataChat({
 }) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [question, setQuestion] = useState("");
+  const [specialistId, setSpecialistId] = useState<SpecialistSelectionId>("auto");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const conversationEndRef = useRef<HTMLDivElement>(null);
@@ -197,7 +242,7 @@ export default function MarketingDataChat({
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: submittedQuestion, history }),
+        body: JSON.stringify({ question: submittedQuestion, history, specialistId }),
       });
       const result = (await response.json()) as unknown;
 
@@ -357,6 +402,22 @@ export default function MarketingDataChat({
       </div>
 
       <form className="border-t border-zinc-200 p-4 sm:p-5" onSubmit={handleSubmit}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <label className="text-xs font-semibold text-zinc-600" htmlFor="marketing-specialist">
+            Specialist
+          </label>
+          <select
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-medium text-zinc-800 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 disabled:bg-zinc-100"
+            disabled={isLoading}
+            id="marketing-specialist"
+            onChange={(event) => setSpecialistId(event.target.value as SpecialistSelectionId)}
+            value={specialistId}
+          >
+            {SPECIALIST_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </select>
+        </div>
         <label className="sr-only" htmlFor="marketing-question">
           Ask a question about your marketing data
         </label>

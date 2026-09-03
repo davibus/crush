@@ -11,14 +11,8 @@ import {
   validateCampaignAnalysisResponse,
 } from "@/lib/campaign-performance-analyzer";
 import {
-  buildGroundedChatCandidates,
-  buildMarketingChatPrompt,
   marketingChatRequestSchema,
   marketingChatResponseSchema,
-  resolveDeterministicCalculation,
-  selectGroundedChatCandidates,
-  validateGroundedChatResponse,
-  type GroundedChatCandidate,
   type MarketingChatRequest,
 } from "@/lib/marketing-data-chat";
 import { marketingInsightsResponseSchema } from "@/lib/marketing-insights";
@@ -28,6 +22,7 @@ import {
   extractOpenAIStructuredResponse,
   type OpenAIStructuredResponse,
 } from "@/lib/openai-structured-response";
+import { executeSpecialistWorkflow } from "@/lib/specialist-analysis";
 
 const MODEL = "gpt-4o-mini";
 const MAX_PROMPT_LENGTH = 500;
@@ -147,50 +142,28 @@ export async function POST(request: Request) {
     webAnalytics,
   });
 
-  let relevantChatCandidates: GroundedChatCandidate[] | undefined;
   if (chatRequest) {
-    const calculation = resolveDeterministicCalculation(
-      chatRequest.question,
-      analysis,
+    const specialistResult = executeSpecialistWorkflow(
+      {
+        analysis,
+        dailyMetrics: marketingData.dailyMetrics,
+        ga4: marketingData.ga4,
+      },
+      chatRequest,
     );
-    if (calculation) {
-      const validation = validateGroundedChatResponse(calculation.response, [calculation]);
-      if (!validation.success) {
-        return errorResponse(
-          "The prepared calculation answer failed grounded validation.",
-          500,
-        );
-      }
-      return Response.json(validation.response);
-    }
-
-    const groundedCandidates = buildGroundedChatCandidates(
-      analysis,
-      marketingData.dailyMetrics,
+    const validated = marketingChatResponseSchema.safeParse(
+      specialistResult.response,
     );
-    relevantChatCandidates = selectGroundedChatCandidates(
-      chatRequest.question,
-      chatRequest.history,
-      groundedCandidates,
-    );
-
-    if (relevantChatCandidates.length === 1) {
-      const deterministic = relevantChatCandidates[0];
-      const validation = validateGroundedChatResponse(
-        deterministic?.response,
-        relevantChatCandidates,
+    if (!validated.success) {
+      return errorResponse(
+        "The prepared specialist answer failed structured validation.",
+        500,
       );
-      if (!validation.success) {
-        return errorResponse(
-          "The prepared marketing answer failed grounded validation.",
-          500,
-        );
-      }
-      return Response.json(validation.response);
     }
+    return Response.json(validated.data);
   }
 
-  if (!chatRequest && analysis.candidates.length === 0) {
+  if (analysis.candidates.length === 0) {
     const insufficient = validateCampaignAnalysisResponse(
       { insights: [] },
       analysis,
@@ -217,59 +190,6 @@ export async function POST(request: Request) {
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    if (chatRequest) {
-      const relevantCandidates = relevantChatCandidates ?? [];
-      const response = await openai.responses.parse({
-        model: MODEL,
-        instructions:
-          "You route a marketing question to one supplied deterministic answer packet. The packets are the only source of truth. Return exactly one packet's response object verbatim. Conversation history may clarify references, but never overrides the packets. Never invent, revise, summarize, calculate, combine, or add an entity, metric, cause, recommendation, limitation, or explanation.",
-        input: buildMarketingChatPrompt(chatRequest, relevantCandidates),
-        text: {
-          format: zodTextFormat(
-            marketingChatResponseSchema,
-            "marketing_data_chat_response",
-            {
-              description:
-                "One evidence-grounded conversational answer copied exactly from an allowed deterministic packet.",
-            },
-          ),
-        },
-        max_output_tokens: MAX_OUTPUT_TOKENS,
-        store: false,
-      });
-      const extracted = extractOpenAIStructuredResponse(response);
-
-      if (!extracted.success) {
-        const reference = diagnosticId();
-        logResponseFailure(reference, response, {
-          chatExtractionFailure: extracted.reason,
-          extractedOutputTextLength: extracted.outputTextLength,
-        });
-        return errorResponse(
-          `The AI did not return a complete structured answer that could be safely validated. Please try again. Reference: ${reference}.`,
-          502,
-        );
-      }
-
-      const validation = validateGroundedChatResponse(
-        extracted.value,
-        relevantCandidates,
-      );
-      if (!validation.success) {
-        const reference = diagnosticId();
-        logResponseFailure(reference, response, {
-          parsedSource: extracted.source,
-          chatValidationError: validation.error,
-        });
-        return errorResponse(
-          `The AI returned an answer that could not be safely validated against the loaded data. Please try again. Reference: ${reference}.`,
-          502,
-        );
-      }
-
-      return Response.json(validation.response);
-    }
-
     const response = await openai.responses.parse({
       model: MODEL,
       instructions:

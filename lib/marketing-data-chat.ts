@@ -15,6 +15,11 @@ import {
   marketingEvidenceSchema,
   type MarketingEntity,
 } from "./marketing-insights.ts";
+import {
+  specialistAgentIdentitySchema,
+  specialistAnalysisSchema,
+  specialistSelectionIdSchema,
+} from "./specialist-agents.ts";
 
 export const MAX_CHAT_QUESTION_LENGTH = 500;
 export const MAX_CHAT_HISTORY_MESSAGES = 8;
@@ -34,6 +39,7 @@ export const marketingChatRequestSchema = z
       .array(chatConversationMessageSchema)
       .max(MAX_CHAT_HISTORY_MESSAGES)
       .default([]),
+    specialistId: specialistSelectionIdSchema.default("auto"),
   })
   .strict()
   .superRefine(({ history }, context) => {
@@ -91,6 +97,14 @@ export const marketingChatResponseSchema = z
       )
       .max(8)
       .optional(),
+    specialist: specialistAgentIdentitySchema.optional(),
+    contributors: z.array(specialistAgentIdentitySchema).max(5).optional(),
+    workflow: z
+      .enum(["single_specialist", "specialists_to_strategist"])
+      .optional(),
+    routingReason: z.string().trim().min(1).max(400).optional(),
+    specialistAnalysis: specialistAnalysisSchema.optional(),
+    contributorAnalyses: z.array(specialistAnalysisSchema).max(4).optional(),
   })
   .strict();
 

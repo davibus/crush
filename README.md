@@ -88,6 +88,16 @@ See [docs/weekly-report.md](docs/weekly-report.md) for reporting-period rules,
 data-source statuses, grounding guarantees, persistence, scheduling, and
 verification.
 
+## Specialist marketing agents
+
+Ask Your Marketing Data supports Auto routing plus PPC, Analytics, CRO, SEO, and
+Marketing Strategist / CMO specialists. Each specialist returns a shared
+structured, evidence-grounded analysis; broad questions use a bounded
+specialists-to-strategist synthesis workflow. See
+[docs/specialist-agents.md](docs/specialist-agents.md) for responsibilities,
+routing, grounding safeguards, verification, and the experimental capabilities
+that were deliberately deferred.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
