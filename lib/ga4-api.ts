@@ -117,10 +117,12 @@ function metricRequest(): NonNullable<RunReportRequest["metrics"]> {
   return [
     { name: "sessions" },
     { name: "totalUsers" },
+    { name: "newUsers" },
     { name: "activeUsers" },
     { name: "keyEvents" },
     { name: "engagedSessions" },
     { name: "engagementRate" },
+    { name: "totalRevenue" },
   ];
 }
 
@@ -176,10 +178,12 @@ function metrics(row: Record<string, string>): GA4Metrics {
   return {
     sessions: number(row.sessions),
     totalUsers: number(row.totalUsers),
+    newUsers: number(row.newUsers),
     activeUsers: number(row.activeUsers),
     keyEvents: number(row.keyEvents),
     engagedSessions: number(row.engagedSessions),
     engagementRate: number(row.engagementRate),
+    totalRevenue: number(row.totalRevenue),
   };
 }
 

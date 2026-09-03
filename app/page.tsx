@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
 import AccountAudit from "@/app/components/account-audit";
+import DailyAnalysisPanel from "@/app/components/daily-analysis-panel";
 import GA4ContextPanel from "@/app/components/ga4-context-panel";
 import KpiOverview from "@/app/components/kpi-overview";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
@@ -73,6 +74,8 @@ export default async function Home() {
             {marketingData.warning}
           </p>
         ) : null}
+
+        <DailyAnalysisPanel />
 
         <div className="mb-8">
           <KpiOverview

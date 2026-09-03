@@ -1,10 +1,12 @@
 export type GA4Metrics = {
   sessions: number;
   totalUsers: number;
+  newUsers: number;
   activeUsers: number;
   keyEvents: number;
   engagedSessions: number;
   engagementRate: number;
+  totalRevenue: number;
 };
 
 export type GA4KeyEvent = {

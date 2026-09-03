@@ -49,6 +49,27 @@ property instructions in [docs/ga4-setup.md](docs/ga4-setup.md). Invalid or
 incomplete GA4 configuration is reported in the GA4 panel while all existing
 paid-media features continue to load.
 
+## Daily Analysis
+
+The workspace can produce a saved daily performance analysis directly from the
+configured live Google Ads and GA4 integrations—no CSV upload is required. It
+compares yesterday with the preceding day and the rolling seven completed days
+with the preceding seven days, applies both relative and absolute materiality
+thresholds, and asks OpenAI only to select from grounded deterministic findings.
+Missing integrations are reported without preventing an available source from
+completing.
+
+Use the **Run Daily Analysis** button, send `POST /api/analysis/daily`, or run
+`npm run daily:analysis`. `GET /api/analysis/daily` returns the latest locally
+saved result. The included Vercel cron calls a separate secret-protected route
+at 08:00 UTC each day. Configure `DAILY_ANALYSIS_TIME_ZONE` for reporting dates,
+`CRON_SECRET` for scheduling, and optionally `DAILY_ANALYSIS_STORAGE_DIR` for
+local JSON storage. Vercel deployments also need a connected private Blob store
+for durable saved history across cron and dashboard invocations.
+
+See [docs/daily-analysis.md](docs/daily-analysis.md) for the exact periods,
+threshold table, grounding guarantees, persistence behavior, and scheduling.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

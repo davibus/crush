@@ -46,14 +46,16 @@ const client: GA4ReportClient = {
     const metricNames = [
       "sessions",
       "totalUsers",
+      "newUsers",
       "activeUsers",
       "keyEvents",
       "engagedSessions",
       "engagementRate",
+      "totalRevenue",
     ];
     const reports = [
       response([], metricNames, [
-        { dimensions: [], metrics: ["500", "420", "390", "36", "325", "0.65"] },
+        { dimensions: [], metrics: ["500", "420", "300", "390", "36", "325", "0.65", "1200"] },
       ]),
       response(["eventName"], ["keyEvents", "totalUsers"], [
         { dimensions: ["generate_lead"], metrics: ["30", "28"] },
@@ -71,7 +73,7 @@ const client: GA4ReportClient = {
         [
           {
             dimensions: ["/demo", "google", "cpc", "Paid Search"],
-            metrics: ["200", "180", "170", "20", "150", "0.75"],
+            metrics: ["200", "180", "120", "170", "20", "150", "0.75", "800"],
           },
         ],
       ),
@@ -88,11 +90,11 @@ const client: GA4ReportClient = {
         [
           {
             dimensions: ["google", "cpc", "google / cpc", "Search", "101", "Paid Search"],
-            metrics: ["200", "180", "170", "20", "150", "0.75"],
+            metrics: ["200", "180", "120", "170", "20", "150", "0.75", "800"],
           },
           {
             dimensions: ["google", "cpc", "google / cpc", "Old campaign", "999", "Paid Search"],
-            metrics: ["25", "20", "19", "1", "10", "0.4"],
+            metrics: ["25", "20", "12", "19", "1", "10", "0.4", "50"],
           },
         ],
       ),
@@ -102,15 +104,15 @@ const client: GA4ReportClient = {
         [
           {
             dimensions: ["101", "Search"],
-            metrics: ["200", "175", "165", "20", "150", "0.75"],
+            metrics: ["200", "175", "115", "165", "20", "150", "0.75", "800"],
           },
           {
             dimensions: ["999", "Old campaign"],
-            metrics: ["25", "20", "19", "1", "10", "0.4"],
+            metrics: ["25", "20", "12", "19", "1", "10", "0.4", "50"],
           },
           {
             dimensions: ["(not set)", "(not set)"],
-            metrics: ["100", "90", "85", "5", "50", "0.5"],
+            metrics: ["100", "90", "60", "85", "5", "50", "0.5", "100"],
           },
         ],
       ),
@@ -132,10 +134,12 @@ for (const request of capturedRequests.slice(1) as Array<{
 assert.deepEqual(data.summary, {
   sessions: 500,
   totalUsers: 420,
+  newUsers: 300,
   activeUsers: 390,
   keyEvents: 36,
   engagedSessions: 325,
   engagementRate: 0.65,
+  totalRevenue: 1200,
 });
 assert.deepEqual(
   data.keyEvents.map((event) => event.eventName),

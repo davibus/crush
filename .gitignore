@@ -42,4 +42,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Local runtime findings can contain private live marketing data.
+/runtime/daily-analyses/
+
 .vercel
