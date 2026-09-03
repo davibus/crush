@@ -1,0 +1,504 @@
+{
+  "schemaVersion": 1,
+  "reportingPeriod": {
+    "startDate": "2026-08-27",
+    "endDate": "2026-09-02"
+  },
+  "comparisonPeriod": {
+    "startDate": "2026-08-20",
+    "endDate": "2026-08-26"
+  },
+  "generatedAt": "2026-09-03T19:33:26.335Z",
+  "timeZone": "UTC",
+  "currency": "USD",
+  "dataSourceStatus": [
+    {
+      "source": "google_ads",
+      "status": "live",
+      "included": true,
+      "detail": "Live Google Ads API data is included."
+    },
+    {
+      "source": "ga4",
+      "status": "live",
+      "included": true,
+      "detail": "Live GA4 Data API context is included and reported separately from Google Ads."
+    }
+  ],
+  "aiEnrichment": {
+    "status": "not_needed",
+    "detail": "No comparable KPI movement was available for AI prioritization; the deterministic report remains complete."
+  },
+  "currentSummary": {
+    "dateRange": {
+      "startDate": "2026-08-27",
+      "endDate": "2026-09-02"
+    },
+    "googleAds": {
+      "spend": 0,
+      "impressions": 0,
+      "clicks": 0,
+      "ctr": null,
+      "cpc": null,
+      "conversions": 0,
+      "conversionRate": null,
+      "cpa": null,
+      "conversionValue": 0,
+      "roas": null
+    },
+    "ga4": {
+      "sessions": 0,
+      "users": 0,
+      "newUsers": 0,
+      "engagedSessions": 0,
+      "engagementRate": 0,
+      "keyEvents": 0,
+      "revenue": 0
+    }
+  },
+  "previousSummary": {
+    "dateRange": {
+      "startDate": "2026-08-20",
+      "endDate": "2026-08-26"
+    },
+    "googleAds": {
+      "spend": 0,
+      "impressions": 0,
+      "clicks": 0,
+      "ctr": null,
+      "cpc": null,
+      "conversions": 0,
+      "conversionRate": null,
+      "cpa": null,
+      "conversionValue": 0,
+      "roas": null
+    },
+    "ga4": {
+      "sessions": 0,
+      "users": 0,
+      "newUsers": 0,
+      "engagedSessions": 0,
+      "engagementRate": 0,
+      "keyEvents": 0,
+      "revenue": 0
+    }
+  },
+  "executiveSummary": "Google Ads and GA4 supplied 12 comparable KPIs. The deterministic review identified 0 favorable movements and 0 unfavorable movements; see the linked evidence for exact values.",
+  "kpiChanges": [
+    {
+      "source": "google_ads",
+      "metric": "spend",
+      "label": "Spend",
+      "unit": "currency",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "google_ads",
+      "metric": "impressions",
+      "label": "Impressions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "google_ads",
+      "metric": "clicks",
+      "label": "Clicks",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "google_ads",
+      "metric": "ctr",
+      "label": "CTR",
+      "unit": "percent",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable"
+    },
+    {
+      "source": "google_ads",
+      "metric": "cpc",
+      "label": "CPC",
+      "unit": "currency",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable"
+    },
+    {
+      "source": "google_ads",
+      "metric": "conversions",
+      "label": "Conversions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "google_ads",
+      "metric": "conversionRate",
+      "label": "Conversion rate",
+      "unit": "percent",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable"
+    },
+    {
+      "source": "google_ads",
+      "metric": "cpa",
+      "label": "CPA",
+      "unit": "currency",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable"
+    },
+    {
+      "source": "google_ads",
+      "metric": "conversionValue",
+      "label": "Conversion value",
+      "unit": "currency",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "google_ads",
+      "metric": "roas",
+      "label": "ROAS",
+      "unit": "ratio",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable"
+    },
+    {
+      "source": "ga4",
+      "metric": "sessions",
+      "label": "Sessions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "ga4",
+      "metric": "users",
+      "label": "Users",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "ga4",
+      "metric": "newUsers",
+      "label": "New users",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "ga4",
+      "metric": "engagedSessions",
+      "label": "Engaged sessions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "ga4",
+      "metric": "engagementRate",
+      "label": "Engagement rate",
+      "unit": "percent",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "ga4",
+      "metric": "keyEvents",
+      "label": "Key events",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    },
+    {
+      "source": "ga4",
+      "metric": "revenue",
+      "label": "Revenue",
+      "unit": "currency",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged"
+    }
+  ],
+  "biggestWins": [],
+  "biggestProblems": [],
+  "recommendedActions": [],
+  "supportingEvidence": [
+    {
+      "source": "google_ads",
+      "metric": "spend",
+      "label": "Spend",
+      "unit": "currency",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "google_ads.spend",
+      "statement": "Google Ads Spend was unchanged, from $0.00 to $0.00."
+    },
+    {
+      "source": "google_ads",
+      "metric": "impressions",
+      "label": "Impressions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "google_ads.impressions",
+      "statement": "Google Ads Impressions was unchanged, from 0 to 0."
+    },
+    {
+      "source": "google_ads",
+      "metric": "clicks",
+      "label": "Clicks",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "google_ads.clicks",
+      "statement": "Google Ads Clicks was unchanged, from 0 to 0."
+    },
+    {
+      "source": "google_ads",
+      "metric": "ctr",
+      "label": "CTR",
+      "unit": "percent",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable",
+      "id": "google_ads.ctr",
+      "statement": "Google Ads CTR could not be compared, from unavailable to unavailable."
+    },
+    {
+      "source": "google_ads",
+      "metric": "cpc",
+      "label": "CPC",
+      "unit": "currency",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable",
+      "id": "google_ads.cpc",
+      "statement": "Google Ads CPC could not be compared, from unavailable to unavailable."
+    },
+    {
+      "source": "google_ads",
+      "metric": "conversions",
+      "label": "Conversions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "google_ads.conversions",
+      "statement": "Google Ads Conversions was unchanged, from 0 to 0."
+    },
+    {
+      "source": "google_ads",
+      "metric": "conversionRate",
+      "label": "Conversion rate",
+      "unit": "percent",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable",
+      "id": "google_ads.conversionRate",
+      "statement": "Google Ads Conversion rate could not be compared, from unavailable to unavailable."
+    },
+    {
+      "source": "google_ads",
+      "metric": "cpa",
+      "label": "CPA",
+      "unit": "currency",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable",
+      "id": "google_ads.cpa",
+      "statement": "Google Ads CPA could not be compared, from unavailable to unavailable."
+    },
+    {
+      "source": "google_ads",
+      "metric": "conversionValue",
+      "label": "Conversion value",
+      "unit": "currency",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "google_ads.conversionValue",
+      "statement": "Google Ads Conversion value was unchanged, from $0.00 to $0.00."
+    },
+    {
+      "source": "google_ads",
+      "metric": "roas",
+      "label": "ROAS",
+      "unit": "ratio",
+      "currentValue": null,
+      "previousValue": null,
+      "absoluteChange": null,
+      "percentageChange": null,
+      "direction": "unavailable",
+      "id": "google_ads.roas",
+      "statement": "Google Ads ROAS could not be compared, from unavailable to unavailable."
+    },
+    {
+      "source": "ga4",
+      "metric": "sessions",
+      "label": "Sessions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "ga4.sessions",
+      "statement": "GA4 Sessions was unchanged, from 0 to 0."
+    },
+    {
+      "source": "ga4",
+      "metric": "users",
+      "label": "Users",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "ga4.users",
+      "statement": "GA4 Users was unchanged, from 0 to 0."
+    },
+    {
+      "source": "ga4",
+      "metric": "newUsers",
+      "label": "New users",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "ga4.newUsers",
+      "statement": "GA4 New users was unchanged, from 0 to 0."
+    },
+    {
+      "source": "ga4",
+      "metric": "engagedSessions",
+      "label": "Engaged sessions",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "ga4.engagedSessions",
+      "statement": "GA4 Engaged sessions was unchanged, from 0 to 0."
+    },
+    {
+      "source": "ga4",
+      "metric": "engagementRate",
+      "label": "Engagement rate",
+      "unit": "percent",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "ga4.engagementRate",
+      "statement": "GA4 Engagement rate was unchanged, from 0.00% to 0.00%."
+    },
+    {
+      "source": "ga4",
+      "metric": "keyEvents",
+      "label": "Key events",
+      "unit": "count",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "ga4.keyEvents",
+      "statement": "GA4 Key events was unchanged, from 0 to 0."
+    },
+    {
+      "source": "ga4",
+      "metric": "revenue",
+      "label": "Revenue",
+      "unit": "currency",
+      "currentValue": 0,
+      "previousValue": 0,
+      "absoluteChange": 0,
+      "percentageChange": null,
+      "direction": "unchanged",
+      "id": "ga4.revenue",
+      "statement": "GA4 Revenue was unchanged, from $0.00 to $0.00."
+    }
+  ],
+  "nextWeekWatchList": [],
+  "warnings": []
+}

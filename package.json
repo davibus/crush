@@ -21,7 +21,9 @@
     "verify:google-ads-api": "node --conditions=react-server --experimental-strip-types scripts/verify-google-ads-api.ts",
     "verify:ga4": "node --conditions=react-server --experimental-strip-types scripts/verify-ga4.ts",
     "verify:daily-analysis": "node --conditions=react-server --experimental-strip-types scripts/verify-daily-analysis.ts",
-    "daily:analysis": "node --conditions=react-server --experimental-strip-types scripts/run-daily-analysis.ts"
+    "verify:weekly-report": "node --conditions=react-server --experimental-strip-types scripts/verify-weekly-report.ts",
+    "daily:analysis": "node --conditions=react-server --experimental-strip-types scripts/run-daily-analysis.ts",
+    "weekly:report": "node --conditions=react-server --experimental-strip-types scripts/run-weekly-report.ts"
   },
   "dependencies": {
     "@google-analytics/data": "^7.0.0",

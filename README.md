@@ -70,6 +70,24 @@ for durable saved history across cron and dashboard invocations.
 See [docs/daily-analysis.md](docs/daily-analysis.md) for the exact periods,
 threshold table, grounding guarantees, persistence behavior, and scheduling.
 
+## Weekly Marketing Report
+
+Crush also generates a saved Weekly Marketing Report for the latest completed
+7-day period against the preceding 7 days. It presents an executive summary,
+source-labeled KPI changes, biggest wins and problems, grounded recommended
+actions, supporting evidence, and a next-week watch list. All calculations and
+evidence are deterministic; optional AI enrichment may only prioritize supplied
+candidates, and an AI failure leaves a complete fallback report.
+
+Use the dashboard button, send `POST /api/reports/weekly`, or run
+`npm run weekly:report`. `GET /api/reports/weekly` retrieves the latest saved
+report. A separate `CRON_SECRET`-protected endpoint runs at 09:00 UTC each
+Monday. Email and Slack delivery are intentionally not implemented.
+
+See [docs/weekly-report.md](docs/weekly-report.md) for reporting-period rules,
+data-source statuses, grounding guarantees, persistence, scheduling, and
+verification.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
