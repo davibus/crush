@@ -4,7 +4,7 @@
 
 [Case study](docs/case-study.md) · [2–3 minute demo script](docs/demo-script.md) · [Portfolio/resume copy](docs/portfolio-entry.md) · [GitHub repository](https://github.com/davibus/crush)
 
-**Live demo:** TODO — deploy the application and add the verified public URL.
+**Live demo:** [crush-gamma-sage.vercel.app](https://crush-gamma-sage.vercel.app)
 
 **Demo video:** TODO — record and publish the walkthrough using the [demo script](docs/demo-script.md).
 
@@ -136,9 +136,14 @@ that were deliberately deferred.
 
 Crush uses the Next.js 16 App Router: the main Server Component loads protected data and calculates the initial workspace, interactive Client Components handle charts and user actions, and Route Handlers run AI and reporting workflows. The stack includes React 19, TypeScript, Tailwind CSS 4, Recharts, Zod, the OpenAI Responses API, Google Ads REST reporting, the official GA4 Data API library, Vercel Cron, and private Vercel Blob storage. See the [case-study architecture diagram](docs/case-study.md#architecture-and-data-flow) for the full data flow.
 
+## Future roadmap
+
+The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-source, intelligence, generative, controlled-action, and agency capabilities into risk-aware phases. These items are future work, not functionality claimed to be available in the current V1 application.
+
 ## Project documentation
 
 - [Project case study](docs/case-study.md)
+- [Post-V1 future roadmap](docs/future-roadmap.md)
 - [Demo script](docs/demo-script.md)
 - [Screenshot capture checklist](docs/screenshots/README.md)
 - [Portfolio and resume entry](docs/portfolio-entry.md)
@@ -150,4 +155,4 @@ Crush uses the Next.js 16 App Router: the main Server Component loads protected 
 
 ## Deployment note
 
-Crush requires a server-capable Next.js deployment for Route Handlers, protected integrations, and reporting workflows. `vercel.json` contains the current daily and weekly cron schedules; a Vercel deployment also needs private Blob storage for durable automation history. No verified production URL is stored in this repository yet.
+Crush requires a server-capable Next.js deployment for Route Handlers, protected integrations, and reporting workflows. `vercel.json` contains the current daily and weekly cron schedules, and the [live Vercel deployment](https://crush-gamma-sage.vercel.app) uses connected private Blob storage for durable automation history.

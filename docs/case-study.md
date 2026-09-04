@@ -269,6 +269,8 @@ No claims are made about customers, conversion lift, savings, revenue impact, or
 
 ## What I would build next
 
+The items below are near-term foundations. See the [post-V1 future roadmap](future-roadmap.md) for the complete phased integrations, intelligence, generation, controlled-action, and agency backlog.
+
 1. Deploy a stable public demo and add authenticated, isolated workspaces for connected accounts.
 2. Add consent, retention, deletion, audit-log, and secret-rotation controls for real client data.
 3. Add configurable goals and business context—targets, margins, lead quality, and approved conversion definitions—without weakening evidence boundaries.
@@ -285,7 +287,7 @@ No screenshots are committed yet. The exact eight-image capture plan and filenam
 ## Links
 
 - **GitHub:** [github.com/davibus/crush](https://github.com/davibus/crush)
-- **Live demo:** **TODO — deploy Crush and add the verified public URL here**
+- **Live demo:** [crush-gamma-sage.vercel.app](https://crush-gamma-sage.vercel.app)
 - **Demo video:** **TODO — record and publish the 2–3 minute walkthrough**
 - **Demo script:** [docs/demo-script.md](demo-script.md)
 - **Screenshot checklist:** [docs/screenshots/README.md](screenshots/README.md)
