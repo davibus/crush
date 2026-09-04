@@ -1,4 +1,4 @@
-# Crush: AI Marketing Command Center
+# Crush Version 1.0: AI Marketing Command Center
 
 > **Portfolio status:** Crush is a personal learning and portfolio project built around a fictional, clearly labeled sample account. It has not been presented here as a client deployment, and no customer, revenue, or adoption claims are implied.
 
@@ -225,7 +225,7 @@ Auto routing uses deterministic domain signals. Broad or cross-channel questions
 - Cron routes require `Authorization: Bearer <CRON_SECRET>` and return metadata rather than detailed marketing data.
 - Vercel persistence uses private Blob access. Local files are created with owner-only permissions where supported and written through a temporary-file rename.
 
-This is a sound prototype posture, not a completed enterprise security review. User authentication, tenancy, consent/retention controls, secret rotation operations, and formal threat modeling would be required before handling multiple real client accounts.
+This is a sound portfolio-project posture for Version 1.0, not a completed enterprise security review. User authentication, tenancy, consent/retention controls, secret rotation operations, and formal threat modeling would be required before handling multiple real client accounts.
 
 ## Demo data and graceful fallback
 
@@ -271,7 +271,7 @@ No claims are made about customers, conversion lift, savings, revenue impact, or
 
 The items below are near-term foundations. See the [post-V1 future roadmap](future-roadmap.md) for the complete phased integrations, intelligence, generation, controlled-action, and agency backlog.
 
-1. Deploy a stable public demo and add authenticated, isolated workspaces for connected accounts.
+1. Harden the public demo and add authenticated, isolated workspaces for connected accounts.
 2. Add consent, retention, deletion, audit-log, and secret-rotation controls for real client data.
 3. Add configurable goals and business context—targets, margins, lead quality, and approved conversion definitions—without weakening evidence boundaries.
 4. Add notification adapters for saved daily/weekly output, beginning with email or Slack review workflows.

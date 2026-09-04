@@ -222,7 +222,7 @@ This mock data is intended to:
 
 \- test Google Ads analysis logic
 
-\- test future recommendation and AI features
+\- test recommendation and AI workflows
 
 \- provide a predictable fallback before live Google Ads API integration
 

@@ -5,9 +5,9 @@
 > Crush, and the phases are sequencing guidance rather than release dates or
 > commitments.
 
-## V1 baseline
+## Version 1.0 baseline
 
-Crush V1 is a working, single-workspace marketing analysis application. It uses
+Crush Version 1.0 is a working, single-workspace marketing analysis application. It uses
 fictional Google Ads data by default and can load read-only live Google Ads
 reporting plus optional GA4 context. The current application provides
 deterministic metrics and audits, evidence-grounded recommendations, bounded
@@ -26,7 +26,7 @@ The present architecture has several useful extension points:
 
 Those strengths should remain. New providers will require a more
 provider-neutral domain model, and agency use will require authentication,
-tenancy, durable account-scoped storage, and operational controls that V1 does
+tenancy, durable account-scoped storage, and operational controls that Version 1.0 does
 not yet provide.
 
 ## Capability and trust levels

@@ -2,7 +2,7 @@
 
 ## Portfolio description
 
-**Crush — AI Marketing Command Center**
+**Crush Version 1.0 — AI Marketing Command Center**
 
 I built Crush to explore how the repetitive parts of marketing analysis could be automated without handing the truth over to a language model. It is a Next.js application that combines Google Ads reporting, optional GA4 context, deterministic account audits, completed-period daily analysis, weekly reporting, grounded AI insights, and a conversational “Ask Your Marketing Data” workspace.
 
@@ -36,4 +36,4 @@ The part I care about most is the trust model: code owns metrics, thresholds, an
 
 Repository: https://github.com/davibus/crush
 
-Live demo: **TODO — add the verified deployment URL after launch**
+Live demo: [crush-gamma-sage.vercel.app](https://crush-gamma-sage.vercel.app)

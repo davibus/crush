@@ -1,9 +1,10 @@
 # Weekly Marketing Report
 
-The Weekly Marketing Report creates and persists a consistent account-performance
-summary from the same normalized Google Ads and GA4 infrastructure as Daily
-Analysis. It has no email or Slack delivery dependency; future delivery adapters
-can consume the saved `WeeklyReport` without changing report generation.
+The Weekly Marketing Report is a Version 1.0 feature that creates and persists a
+consistent account-performance summary from the same normalized Google Ads and
+GA4 infrastructure as Daily Analysis. It has no email or Slack delivery
+dependency; future delivery adapters can consume the saved `WeeklyReport`
+without changing report generation.
 
 ## Reporting periods
 

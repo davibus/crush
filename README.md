@@ -1,6 +1,6 @@
-# Crush
+# Crush — Version 1.0
 
-**Crush is an AI marketing command center that turns Google Ads performance and optional GA4 context into explainable decisions.** It combines a decision-focused dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows in one Next.js application.
+**Crush Version 1.0 is an AI marketing command center that turns Google Ads performance and optional GA4 context into explainable decisions.** It combines a decision-focused dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows in one Next.js application.
 
 [Case study](docs/case-study.md) · [2–3 minute demo script](docs/demo-script.md) · [Portfolio/resume copy](docs/portfolio-entry.md) · [GitHub repository](https://github.com/davibus/crush)
 
@@ -18,7 +18,7 @@ Crush explores a deterministic-first answer: application code owns calculations,
 
 > Crush is not presented as a client deployment. The included Northstar Outdoor Co. account is fictional, and this repository makes no claims about customers, revenue lift, cost savings, or production adoption.
 
-## Major capabilities
+## Version 1.0 capabilities
 
 - account KPIs, daily trends, campaign comparisons, and geographic performance
 - optional GA4 sessions, users, key events, traffic sources, and landing-page context
@@ -138,7 +138,7 @@ Crush uses the Next.js 16 App Router: the main Server Component loads protected 
 
 ## Future roadmap
 
-The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-source, intelligence, generative, controlled-action, and agency capabilities into risk-aware phases. These items are future work, not functionality claimed to be available in the current V1 application.
+The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-source, intelligence, generative, controlled-action, and agency capabilities into risk-aware phases. These items are future work, not functionality claimed to be available in Version 1.0.
 
 ## Project documentation
 

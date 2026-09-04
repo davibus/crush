@@ -78,34 +78,34 @@ assert.deepEqual(
   aggregateGoogleAdsMetrics(
     campaignData.campaigns.map((campaign) => campaign.metrics),
   ),
-  "Account evidence does not agree with the issue #4 aggregate metric function.",
+  "Account evidence does not agree with the aggregate metric function.",
 );
 for (const campaign of campaignData.campaigns) {
   assert.deepEqual(
     sampleAnalysis.campaigns.find((item) => item.id === campaign.id)?.metrics,
     calculateGoogleAdsMetrics(campaign.metrics),
-    `Campaign evidence for ${campaign.name} does not agree with issue #4 metrics.`,
+    `Campaign evidence for ${campaign.name} does not agree with the shared metrics.`,
   );
 }
 for (const geography of geographyData.locations) {
   assert.deepEqual(
     sampleAnalysis.geographies.find((item) => item.id === geography.id)?.metrics,
     calculateGoogleAdsMetrics(geography),
-    `Geography evidence for ${geography.location} does not agree with issue #4 metrics.`,
+    `Geography evidence for ${geography.location} does not agree with the shared metrics.`,
   );
 }
 for (const keyword of keywordData.keywords) {
   assert.deepEqual(
     sampleAnalysis.keywords.find((item) => item.id === keyword.id)?.metrics,
     calculateGoogleAdsMetrics(keyword),
-    `Keyword evidence for ${keyword.keyword} does not agree with issue #4 metrics.`,
+    `Keyword evidence for ${keyword.keyword} does not agree with the shared metrics.`,
   );
 }
 for (const searchTerm of searchTermData.searchTerms) {
   assert.deepEqual(
     sampleAnalysis.searchTerms.find((item) => item.id === searchTerm.id)?.metrics,
     calculateGoogleAdsMetrics(searchTerm),
-    `Search-term evidence for ${searchTerm.searchTerm} does not agree with issue #4 metrics.`,
+    `Search-term evidence for ${searchTerm.searchTerm} does not agree with the shared metrics.`,
   );
 }
 assert.ok(
@@ -178,7 +178,7 @@ const successfulAnalysis = await analyzeCampaignPerformance(
 assert.ok(successfulAnalysis.success, "A valid generated insight was rejected.");
 assert.ok(
   validateMarketingInsights({ insights: successfulAnalysis.insights }).success,
-  "Generated insights failed the issue #6 schema.",
+  "Generated insights failed the structured insight schema.",
 );
 
 const usefulCandidates = [

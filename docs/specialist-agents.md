@@ -1,6 +1,6 @@
 # Specialist marketing agents
 
-Issue #20 adds a deliberately small specialist-agent layer to **Ask Your
+Version 1.0 includes a deliberately small specialist-agent layer in **Ask Your
 Marketing Data**. It improves analysis by applying different scopes and data
 boundaries while retaining Crush's deterministic evidence model.
 
@@ -66,7 +66,7 @@ four contributor outputs and does not convert those limitations into facts.
 ## Grounding and safety
 
 The PPC specialist reuses the deterministic answer packets and calculations
-from the issue #19 chat implementation. Analytics, CRO, and SEO compute only
+from Ask Your Marketing Data. Analytics, CRO, and SEO compute only
 from loaded GA4 rows when present. A one-period snapshot is never described as
 a measured increase or decline. Specialist metadata and structured analyses are
 validated in the server route before being returned to the browser. The OpenAI
@@ -92,8 +92,8 @@ Deliberately deferred:
   context directly.
 - **Agent memory:** recent bounded conversation history remains sufficient for
   follow-ups. Persistent memory could make period and account context stale and
-  would require storage, retention, and user-control decisions outside this
-  prototype.
+  would require storage, retention, and user-control decisions outside Version
+  1.0.
 
 Run `npm run verify:specialists` for deterministic coverage of registry shape,
 routing, distinct scope instructions, structured output behavior, synthesis,

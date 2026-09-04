@@ -1,8 +1,9 @@
 # Daily Analysis
 
-Daily Analysis collects completed live reporting periods, compares them with
-equivalent prior periods, filters out routine fluctuation, runs a grounded AI
-selection, and saves the result. It does not use or require a CSV upload.
+Daily Analysis is a Version 1.0 feature that collects completed live reporting
+periods, compares them with equivalent prior periods, filters out routine
+fluctuation, runs a grounded AI selection, and saves the result. It does not use
+or require a CSV upload.
 
 ## Periods and timezone
 

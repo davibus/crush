@@ -35,7 +35,7 @@ export async function collectWeeklyMarketingData(
   ranges: WeeklyReportRanges,
   environment: NodeJS.ProcessEnv = process.env,
 ): Promise<WeeklyReportCollection> {
-  // Reuse the Issue #18 collector so normalization, API error isolation, and
+  // Reuse the Daily Analysis collector so normalization, API error isolation, and
   // exact-period source behavior stay identical. The daily-only periods are
   // harmless context; the weekly report consumes only the two 7-day summaries.
   const dailyRanges: DailyAnalysisRanges = {
