@@ -44,8 +44,8 @@ used to invent a prior week.
 ## Generate, retrieve, and schedule
 
 - Click **Generate Weekly Report** on the dashboard.
-- Send `POST /api/reports/weekly?clientId=demo` to generate and persist a report.
-- Send `GET /api/reports/weekly?clientId=demo` to retrieve the latest saved report.
+- After signing in as a demo member, send `POST /api/reports/weekly?clientId=demo` to generate and persist a report.
+- Send `GET /api/reports/weekly?clientId=demo` to retrieve the latest saved report. Both methods enforce the current user's workspace membership server-side.
 - Run `npm run weekly:report -- demo` from a scheduler or local shell.
 - Call `GET /api/reports/weekly/cron` with
   `Authorization: Bearer <CRON_SECRET>` from a cron service.

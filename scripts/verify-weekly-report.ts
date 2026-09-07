@@ -119,8 +119,16 @@ try {
   await saveWeeklyReport("demo", replacement, directory);
   assert.deepEqual(await getLatestWeeklyReport("demo", directory), replacement);
   assert.equal((await listWeeklyReports("demo", directory)).length, 1);
+  const otherTenantReport = { ...replacement, generatedAt: "2026-08-31T12:02:00.000Z" };
+  await saveWeeklyReport("client-a", otherTenantReport, directory);
+  assert.deepEqual(await getLatestWeeklyReport("client-a", directory), otherTenantReport);
+  assert.deepEqual(
+    await getLatestWeeklyReport("demo", directory),
+    replacement,
+    "Writing another tenant must not replace the demo tenant's report.",
+  );
 } finally {
   await rm(directory, { recursive: true, force: true });
 }
 
-console.log("Weekly report verification passed: completed 7-day periods, KPI percentage changes, zero and missing-value handling, evidence grounding, deterministic AI fallback, schema validation, orchestration, and persistence round-trip.");
+console.log("Weekly report verification passed: completed 7-day periods, KPI percentage changes, zero and missing-value handling, evidence grounding, deterministic AI fallback, schema validation, orchestration, and tenant-isolated persistence round-trip.");

@@ -3,8 +3,8 @@ import path from "node:path";
 
 import { get, list, put } from "@vercel/blob";
 
-import { requireClientById } from "./clients.ts";
 import type { DailyAnalysisResult } from "./daily-analysis.ts";
+import { requireWorkspaceId } from "./workspace-id.ts";
 
 const FILE_NAME = /^\d{4}-\d{2}-\d{2}\.json$/;
 
@@ -17,8 +17,7 @@ function storageRoot(override?: string): string {
 }
 
 function storageDirectory(clientId: string, override?: string): string {
-  const client = requireClientById(clientId);
-  return path.join(storageRoot(override), "clients", client.id, "daily-analysis");
+  return path.join(storageRoot(override), "clients", requireWorkspaceId(clientId), "daily-analysis");
 }
 
 function shouldUseVercelBlob(override?: string): boolean {
@@ -58,13 +57,11 @@ function parseDailyAnalysis(value: string, analysisDate: string): DailyAnalysisR
 }
 
 export function getDailyAnalysisStorageKey(clientId: string, analysisDate: string): string {
-  const client = requireClientById(clientId);
-  return `clients/${client.id}/daily-analysis/${validateDate(analysisDate)}.json`;
+  return `clients/${requireWorkspaceId(clientId)}/daily-analysis/${validateDate(analysisDate)}.json`;
 }
 
 function blobPrefix(clientId: string): string {
-  const client = requireClientById(clientId);
-  return `clients/${client.id}/daily-analysis/`;
+  return `clients/${requireWorkspaceId(clientId)}/daily-analysis/`;
 }
 
 async function getBlobDailyAnalysis(

@@ -1,5 +1,6 @@
 import { getLatestDailyAnalysis } from "@/lib/daily-analysis-storage";
 import { runDailyMarketingAnalysis } from "@/lib/daily-analysis-runner";
+import { resolveApiWorkspace } from "@/lib/workspace-access";
 
 export const runtime = "nodejs";
 
@@ -17,15 +18,11 @@ function failure(error: unknown) {
   );
 }
 
-function clientFromRequest(request: Request) {
-  const clientId = new URL(request.url).searchParams.get("clientId");
-  return clientId ? getClientById(clientId) : getDefaultClient();
-}
-
 export async function GET(request: Request) {
   try {
-    const client = clientFromRequest(request);
-    if (!client) return Response.json({ error: "Unknown client workspace." }, { status: 404 });
+    const access = await resolveApiWorkspace(new URL(request.url).searchParams.get("clientId"));
+    if (!access.ok) return access.response;
+    const client = access.workspace;
     const analysis = await getLatestDailyAnalysis(client.id);
     if (!analysis) {
       return Response.json(
@@ -41,11 +38,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const client = clientFromRequest(request);
-    if (!client) return Response.json({ error: "Unknown client workspace." }, { status: 404 });
+    const access = await resolveApiWorkspace(new URL(request.url).searchParams.get("clientId"));
+    if (!access.ok) return access.response;
+    const client = access.workspace;
     return Response.json(await runDailyMarketingAnalysis(client.id));
   } catch (error) {
     return failure(error);
   }
 }
-import { getClientById, getDefaultClient } from "@/lib/clients";

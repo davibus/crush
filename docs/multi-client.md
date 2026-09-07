@@ -1,59 +1,81 @@
-# Multi-client foundation
+# Authenticated multi-tenant architecture
 
-Crush Version 2 replaces the process-wide account selection with a server-controlled client workspace context. This phase is an isolation foundation, not a complete multi-tenant product: it intentionally has no authentication, database, invitations, billing, or account-writing capabilities.
+Crush treats the workspace ID as tenant context, but never as proof of access. A browser may request `/clients/demo` or submit `clientId=demo`; the server resolves the signed-in user and confirms a database membership before it loads integrations, caches, analysis, chat data, or reports.
 
-## Architecture
+## Authentication
 
-`lib/clients.ts` is the server-only registry and trust boundary. A workspace contains a stable ID, display name, status, data-source mode, and optional Google Ads customer/login-customer and GA4 property identifiers. OAuth client secrets, refresh tokens, developer tokens, service-account private keys, and OpenAI keys are never fields on a workspace.
+Crush uses Auth.js v5 rather than a custom password system. Production uses GitHub OAuth, encrypted HTTP-only Auth.js JWT sessions, and the official PostgreSQL adapter for durable users and provider accounts. The Auth.js handler is `/api/auth/[...nextauth]`; Next.js 16 `proxy.ts` performs an optimistic session check for `/clients/*`, while the page and data-access layer repeat secure checks close to the data.
 
-The browser receives only the selector projection (`id`, `name`, and `status`). A request may submit a workspace ID, but the server resolves that ID through the registry and derives all integration identifiers itself. Raw Google Ads customer IDs and GA4 property IDs from requests are never accepted.
+For a zero-real-client local demo, set `AUTH_ALLOW_DEV_LOGIN=true` without `DATABASE_URL`. Auth.js then exposes a one-click `development` identity and the tenant repository uses development fixtures. Both conditions are enforced in code and `NODE_ENV=production` always disables this path. This is a convenience for local development and portfolio demonstrations, not a production authentication method.
 
-The initial registry contains:
+## Database model
 
-- `demo` — the default workspace and bundled sample-data experience
-- `client-a` — a human-readable placeholder for a future client
-- `client-b` — a second placeholder proving isolation
+`migrations/001_authenticated_tenants.sql` creates:
 
-Names and per-client identifiers can be changed with environment variables. A live placeholder with no account/property ID is marked as needing configuration and safely falls back to the sample Google Ads dataset while GA4 remains unconfigured.
+- Auth.js `users`, `accounts`, `sessions`, and `verification_token` tables.
+- `workspaces`, with a stable, URL/path-safe text ID, display name, and lifecycle status.
+- `workspace_memberships`, keyed by user and workspace with an extensible `owner`, `member`, or `viewer` role.
+- `workspace_integrations`, keyed by workspace and provider. It stores safe upstream account/property identifiers, non-secret configuration, and an optional secret reference.
 
-## Shared credentials and per-client identifiers
+The migration seeds only the `demo` workspace with sample Google Ads configuration. `client-a` and `client-b` remain local development/test fixtures because they were V2 #1 isolation examples, not real tenants. They are deliberately not inserted into production data.
 
-Google Ads OAuth credentials and the developer token are shared server settings: `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_REFRESH_TOKEN`, and `GOOGLE_ADS_DEVELOPER_TOKEN`. API version and reporting range are also shared.
+Run the migration with:
 
-Each workspace owns its target identifiers, for example `CLIENT_A_GOOGLE_ADS_CUSTOMER_ID`, `CLIENT_A_GOOGLE_ADS_LOGIN_CUSTOMER_ID`, and `CLIENT_A_GA4_PROPERTY_ID`. GA4's `GA4_CLIENT_EMAIL` and `GA4_PRIVATE_KEY` remain shared server-only service-account credentials. The service account must have read access to each configured property.
+```powershell
+npm.cmd run db:migrate
+```
 
-For V1 environment compatibility, legacy `GOOGLE_ADS_DATA_SOURCE`, `GOOGLE_ADS_CUSTOMER_ID`, `GOOGLE_ADS_LOGIN_CUSTOMER_ID`, and `GA4_PROPERTY_ID` values apply only to `demo` when equivalent `DEMO_*` values are absent.
+## Authorization flow
 
-## Routing and requests
+The central boundaries are:
 
-Dashboard workspaces live at `/clients/[clientId]`; `/` redirects to `/clients/demo`. Unknown route IDs render the Next.js not-found result. The selector navigates among known registry entries and does not display account IDs.
+- `lib/tenant-repository.ts`: database-independent repository interface plus PostgreSQL and development implementations.
+- `lib/tenant-authorization.ts`: membership resolution and safe selector projection.
+- `lib/workspace-access.ts`: Auth.js session resolution for Next.js pages and Route Handlers.
+- `lib/clients.ts`: integration-environment compatibility helpers and development fixtures; it is no longer the production membership source of truth.
 
-AI insights and chat send the active workspace ID to `/api/ai`. Daily Analysis and Weekly Reports use a validated `clientId` query parameter. Missing client IDs on the legacy API URLs continue to resolve to `demo`, while explicitly unknown IDs return `404`. Protected cron routes iterate active registry workspaces on the server.
+For a page request, the server reads the Auth.js session, queries `workspace_memberships` joined to `workspaces`, and renders only after a matching row exists. Both an unknown ID and another tenant's ID produce the same not-found result.
 
-## Cache isolation
+For `/api/ai`, `/api/analysis/daily`, and `/api/reports/weekly`, `resolveApiWorkspace` returns `401` when no valid session exists, `400` when `clientId` is missing, and the same `404` body for unknown and non-member workspaces. Only the repository-returned canonical workspace is passed downstream. Cron endpoints retain their timing-safe `CRON_SECRET` check and enumerate active workspaces directly from the tenant repository.
 
-The live Google Ads and GA4 in-memory caches are maps keyed with the workspace ID plus the relevant account/property identity and reporting configuration. Including the workspace ID is deliberate even when two workspaces happen to use the same upstream identifier. A cached result for one workspace therefore cannot be returned under another workspace's key.
+The selector receives only `{ id, name, status }` for the current user's memberships. Account IDs, secret references, credentials, tokens, and keys are not serialized to it.
 
-## Storage isolation
+## Integration and tenant propagation
 
-Daily and weekly JSON output uses client-scoped local paths and private Blob keys:
+Google Ads customer/login-customer IDs and GA4 property IDs are safe server-side routing configuration in `workspace_integrations`. `secret_ref` is reserved for a future environment/managed-secret resolver. Raw Google Ads OAuth credentials, developer tokens, GA4 service-account credentials, OpenAI keys, Blob tokens, Auth.js secrets, and database credentials stay in server-only environment variables. They must never use a `NEXT_PUBLIC_` prefix.
+
+The existing adapters remain read-only. `createClientEnvironment` derives the adapter environment on the server, and no Google Ads mutation capability is enabled.
+
+The repository-returned workspace ID continues through Google Ads, GA4, AI insights, specialist chat, audits, daily analysis, weekly reports, and cron runners. Process-local Google Ads and GA4 caches include the workspace ID even when upstream identifiers match. File and private-Blob persistence remains:
 
 ```text
 clients/{clientId}/daily-analysis/{YYYY-MM-DD}.json
 clients/{clientId}/weekly-reports/{YYYY-MM-DD}.json
 ```
 
-`DAILY_ANALYSIS_STORAGE_DIR` and `WEEKLY_REPORT_STORAGE_DIR` now represent optional storage roots; the client hierarchy is always appended. Existing unscoped V1 files are left untouched and are not automatically surfaced in a workspace, because tenant isolation takes priority over ambiguous legacy data. They can be migrated manually into the `demo` hierarchy if needed.
+Workspace IDs are validated before they become cache or storage path segments.
 
-## Adding another client
+## Production setup
 
-1. Add a stable ID to `CLIENT_IDS` and a registry entry in `lib/clients.ts`.
-2. Add name, data-source, Google Ads customer/login-customer, and GA4 property environment variables following the existing A/B pattern.
-3. Keep credentials in the shared server-only variables; never add them to the workspace object or a `NEXT_PUBLIC_*` variable.
-4. Run `npm run verify:clients`, the analysis/report verifiers, lint, and a production build.
+1. Provision PostgreSQL and set `DATABASE_URL`. TLS verification is the default; set `DATABASE_SSL=disable` only for a trusted local database.
+2. Generate `AUTH_SECRET` with `npx auth secret`. On a trusted non-Vercel reverse proxy, also set `AUTH_TRUST_HOST=true`; Vercel and the Next development server are trusted automatically.
+3. Create a GitHub OAuth app and set `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`. Use `/api/auth/callback/github` on the deployed origin as the callback URL.
+4. Run `npm.cmd run db:migrate`.
+5. Sign in once so Auth.js creates the user, then grant membership with `npm.cmd run db:grant -- user@example.com demo`.
+6. Configure the existing server-only Google Ads, GA4, OpenAI, Blob, and cron variables as needed.
 
-## Current limitations and future migration
+An authenticated user with no memberships sees a neutral no-workspace state. Creating invitations or an admin membership UI is intentionally deferred.
 
-The registry is code/environment-backed, so every visitor can switch among every configured workspace. It is appropriate only for this unauthenticated foundation. There is no user-to-workspace authorization, durable tenant catalog, per-client secret vault, job queue, retention policy, or administrative UI.
+## Adding a future client
 
-A future phase should introduce authentication and a durable tenant database, enforce membership before registry resolution, store encrypted integration references rather than credentials in client records, and carry the same tenant ID through jobs, logs, caches, Blob paths, and database queries. The current explicit context and scoped-key design provides the boundary for that migration without changing the deterministic/evidence-grounded analysis model or enabling Google Ads mutations.
+Choose a stable lowercase ID containing only letters, numbers, and internal hyphens. Insert a `workspaces` row, insert safe `workspace_integrations` rows, and add explicit `workspace_memberships`. Store only an environment/secret-manager reference in `secret_ref`; do not place raw refresh tokens, private keys, or API keys in workspace configuration. Once a future secret resolver supports that reference, the existing server-side adapter environment boundary can select tenant-specific credentials without exposing them to the browser.
+
+Do not add a client by editing the selector or accepting an ID from a browser. The selector is derived from memberships and every API independently authorizes the request.
+
+## Intentionally deferred
+
+Billing, subscriptions, invitations, self-service tenant administration, a full secret-management platform, additional integrations, additional real clients, Google Ads writes, and autonomous actions remain out of scope. PostgreSQL migrations are intentionally SQL-first for this small learning project; a larger migration framework can be adopted when schema churn warrants it.
+
+## Verification
+
+Run `npm.cmd run verify:tenancy` for focused tenant checks, then the existing verification scripts, lint, build, and `git diff --check`. The tenant verification covers membership allow/deny behavior, indistinguishable unknown/non-member responses, API ID bypass attempts, selector projection, cache isolation, report path isolation, secret projection, path traversal rejection, and demo sample configuration.

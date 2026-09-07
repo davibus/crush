@@ -346,10 +346,18 @@ try {
     "Re-running a date should replace that date atomically without adding a duplicate.",
   );
   assert.equal((await listDailyAnalyses("demo", testDirectory)).length, 1);
+  const otherTenantResult = { ...replacement, generatedAt: "2026-08-31T12:02:00.000Z" };
+  await saveDailyAnalysis("client-a", otherTenantResult, testDirectory);
+  assert.deepEqual(await getLatestDailyAnalysis("client-a", testDirectory), otherTenantResult);
+  assert.deepEqual(
+    await getLatestDailyAnalysis("demo", testDirectory),
+    replacement,
+    "Writing another tenant must not replace the demo tenant's analysis.",
+  );
 } finally {
   await rm(testDirectory, { recursive: true, force: true });
 }
 
 console.log(
-  "Daily Analysis verification passed: timezone-safe completed-day ranges, one 14-day Google Ads retrieval, sequential exact-period GA4 retrieval, prior-period comparisons, dual materiality thresholds, insignificant-change suppression, significant-change detection, automatic AI/fallback orchestration, and persistence round-trip.",
+  "Daily Analysis verification passed: timezone-safe completed-day ranges, one 14-day Google Ads retrieval, sequential exact-period GA4 retrieval, prior-period comparisons, dual materiality thresholds, insignificant-change suppression, significant-change detection, automatic AI/fallback orchestration, and tenant-isolated persistence round-trip.",
 );

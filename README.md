@@ -2,7 +2,7 @@
 
 **Crush Version 2 begins with an explicit multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance and optional GA4 context into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
 
-The current V2 architecture provides server-controlled `demo`, `client-a`, and `client-b` workspaces at `/clients/[clientId]`, client-scoped caches and report storage, and a header workspace selector. It intentionally does not yet include authentication, a database, billing, invitations, or account-writing features. See [the multi-client architecture guide](docs/multi-client.md).
+The current V2 architecture provides authenticated workspaces at `/clients/[clientId]`, durable PostgreSQL users/memberships, client-scoped caches and report storage, and an authorized-only workspace selector. The local demo remains available through an explicitly development-only identity and fixture repository. It intentionally does not include billing, invitations, tenant-management UI, or account-writing features. See [the multi-client architecture guide](docs/multi-client.md).
 
 [Case study](docs/case-study.md) · [2–3 minute demo script](docs/demo-script.md) · [Portfolio/resume copy](docs/portfolio-entry.md) · [GitHub repository](https://github.com/davibus/crush)
 
@@ -52,7 +52,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000); it redirects to the default demo workspace at `/clients/demo`.
+Set `AUTH_ALLOW_DEV_LOGIN=true` and an `AUTH_SECRET` in `.env.local`, then open [http://localhost:3000](http://localhost:3000). Choose **Open local demo** to enter `/clients/demo` with bundled sample data. This development bypass is disabled whenever `NODE_ENV=production` or `DATABASE_URL` is configured.
+
+For durable authentication, configure PostgreSQL and GitHub OAuth, then run `npm.cmd run db:migrate`. Sign in once and grant the new Auth.js user access with `npm.cmd run db:grant -- you@example.com demo`. See [the multi-client architecture guide](docs/multi-client.md) for production setup and future-client steps.
 
 The application uses the included sample Google Ads dataset by default, so no external account is required for local development.
 

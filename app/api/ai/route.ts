@@ -10,7 +10,6 @@ import {
   type PreparedCampaignPerformanceAnalysis,
   validateCampaignAnalysisResponse,
 } from "@/lib/campaign-performance-analyzer";
-import { getClientById, getDefaultClient } from "@/lib/clients";
 import {
   marketingChatRequestSchema,
   marketingChatResponseSchema,
@@ -24,6 +23,7 @@ import {
   type OpenAIStructuredResponse,
 } from "@/lib/openai-structured-response";
 import { executeSpecialistWorkflow } from "@/lib/specialist-analysis";
+import { resolveApiWorkspace } from "@/lib/workspace-access";
 
 const MODEL = "gpt-4o-mini";
 const MAX_PROMPT_LENGTH = 500;
@@ -102,10 +102,9 @@ export async function POST(request: Request) {
   if (submittedClientId !== undefined && typeof submittedClientId !== "string") {
     return errorResponse("Client ID must be a string.", 400);
   }
-  const client = submittedClientId
-    ? getClientById(submittedClientId)
-    : getDefaultClient();
-  if (!client) return errorResponse("Unknown client workspace.", 404);
+  const access = await resolveApiWorkspace(submittedClientId);
+  if (!access.ok) return access.response;
+  const client = access.workspace;
   const requestBody = { ...submittedBody };
   delete requestBody.clientId;
   const isChatRequest = "question" in requestBody || "history" in requestBody;

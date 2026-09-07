@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
-import { getClients } from "@/lib/clients";
 import { runDailyMarketingAnalysis } from "@/lib/daily-analysis-runner";
+import { getTenantRepository } from "@/lib/tenant-repository";
 
 export const runtime = "nodejs";
 
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   }
   try {
     const results = [];
-    for (const client of getClients().filter(({ status }) => status === "active")) {
+    for (const client of await getTenantRepository().listActiveWorkspaces()) {
       const result = await runDailyMarketingAnalysis(client.id);
       results.push({
         clientId: client.id,

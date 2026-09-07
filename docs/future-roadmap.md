@@ -312,6 +312,11 @@ just additional dashboard components.
 
 ### Client accounts
 
+> V2 now includes the authentication, durable workspace/membership model, and
+> server-enforced read isolation described here. Invitations, retention/deletion
+> workflows, billing, managed tenant secrets, and production security review
+> remain future work before onboarding real clients.
+
 - **What:** Provide authenticated, isolated client workspaces with users, roles,
   connected marketing accounts, goals, preferences, and data-retention controls.
 - **Why:** Let consultants or teams use Crush for real accounts without mixing

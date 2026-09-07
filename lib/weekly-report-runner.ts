@@ -1,17 +1,19 @@
 import "server-only";
 
-import { createClientEnvironment, requireClientById } from "./clients.ts";
+import { createClientEnvironment } from "./clients.ts";
 import { enrichWeeklyReport } from "./weekly-report-ai.ts";
 import { collectWeeklyMarketingData } from "./weekly-report-data.ts";
 import { saveWeeklyReport } from "./weekly-report-storage.ts";
 import { executeWeeklyReport, type WeeklyReport } from "./weekly-report.ts";
+import { getTenantRepository } from "./tenant-repository.ts";
 
 export async function runWeeklyMarketingReport(
   clientId: string,
   options: { now?: Date; timeZone?: string; environment?: NodeJS.ProcessEnv } = {},
 ): Promise<WeeklyReport> {
   const baseEnvironment = options.environment ?? process.env;
-  const client = requireClientById(clientId, baseEnvironment);
+  const client = await getTenantRepository().findWorkspaceById(clientId);
+  if (!client) throw new Error(`Unknown client workspace: ${clientId}`);
   const environment = createClientEnvironment(client, baseEnvironment);
   return executeWeeklyReport(
     {

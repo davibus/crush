@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
-import { getClients } from "@/lib/clients";
 import { runWeeklyMarketingReport } from "@/lib/weekly-report-runner";
+import { getTenantRepository } from "@/lib/tenant-repository";
 
 export const runtime = "nodejs";
 
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   if (!authorized(request)) return Response.json({ error: "Unauthorized." }, { status: 401 });
   try {
     const results = [];
-    for (const client of getClients().filter(({ status }) => status === "active")) {
+    for (const client of await getTenantRepository().listActiveWorkspaces()) {
       const report = await runWeeklyMarketingReport(client.id);
       results.push({
         clientId: client.id,

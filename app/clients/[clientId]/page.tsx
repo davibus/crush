@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 
 import { ClientDashboard } from "@/app/page";
-import { getClientById, getClients } from "@/lib/clients";
-
-export function generateStaticParams() {
-  return getClients().map(({ id }) => ({ clientId: id }));
-}
+import {
+  listAuthorizedWorkspaceSummaries,
+  requireAuthenticatedPageUser,
+  resolveWorkspaceMembership,
+} from "@/lib/workspace-access";
 
 export default async function ClientPage({
   params,
@@ -13,7 +13,11 @@ export default async function ClientPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const client = getClientById(clientId);
+  const user = await requireAuthenticatedPageUser();
+  const [client, workspaceOptions] = await Promise.all([
+    resolveWorkspaceMembership(user.id, clientId),
+    listAuthorizedWorkspaceSummaries(user.id),
+  ]);
   if (!client) notFound();
-  return <ClientDashboard client={client} />;
+  return <ClientDashboard client={client} workspaceOptions={workspaceOptions} />;
 }

@@ -94,10 +94,10 @@ saved with a warning, so source collection and comparison still complete.
 ## Running and saving
 
 - Click **Run Daily Analysis** in the workspace.
-- Send `POST /api/analysis/daily?clientId=demo` during development.
+- After signing in as a demo member, send `POST /api/analysis/daily?clientId=demo` during development.
 - Run `npm run daily:analysis -- demo`; the runner loads `.env.local` through Next's
   environment loader.
-- Read the latest saved result with `GET /api/analysis/daily?clientId=demo`.
+- Read the latest saved result with `GET /api/analysis/daily?clientId=demo`. Both methods enforce the current user's workspace membership server-side.
 
 Results are saved by analysis date under
 `runtime/clients/{clientId}/daily-analysis/` by default. The directory is
@@ -113,7 +113,8 @@ Storage is abstracted behind
 
 `vercel.json` schedules `/api/analysis/daily/cron` at `0 8 * * *` (08:00 UTC).
 The route requires `Authorization: Bearer <CRON_SECRET>` and returns no detailed
-marketing data. It runs each active server-registry workspace. The manual/UI
+marketing data. It runs each active workspace returned by the durable tenant
+repository. The manual/UI
 endpoint remains separate. For local or non-Vercel scheduling, invoke
 `npm run daily:analysis -- <clientId>` once per day or call the protected
 cron route with the same bearer header.

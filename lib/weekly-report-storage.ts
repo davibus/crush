@@ -3,8 +3,8 @@ import path from "node:path";
 
 import { get, list, put } from "@vercel/blob";
 
-import { requireClientById } from "./clients.ts";
 import { weeklyReportSchema, type WeeklyReport } from "./weekly-report.ts";
+import { requireWorkspaceId } from "./workspace-id.ts";
 
 const FILE_NAME = /^\d{4}-\d{2}-\d{2}\.json$/;
 
@@ -14,8 +14,7 @@ function storageRoot(override?: string): string {
 }
 
 function storageDirectory(clientId: string, override?: string): string {
-  const client = requireClientById(clientId);
-  return path.join(storageRoot(override), "clients", client.id, "weekly-reports");
+  return path.join(storageRoot(override), "clients", requireWorkspaceId(clientId), "weekly-reports");
 }
 
 function shouldUseVercelBlob(override?: string): boolean {
@@ -34,13 +33,11 @@ function parseWeeklyReport(value: string, periodEnd: string): WeeklyReport {
 }
 
 export function getWeeklyReportStorageKey(clientId: string, periodEnd: string): string {
-  const client = requireClientById(clientId);
-  return `clients/${client.id}/weekly-reports/${validateDate(periodEnd)}.json`;
+  return `clients/${requireWorkspaceId(clientId)}/weekly-reports/${validateDate(periodEnd)}.json`;
 }
 
 function blobPrefix(clientId: string): string {
-  const client = requireClientById(clientId);
-  return `clients/${client.id}/weekly-reports/`;
+  return `clients/${requireWorkspaceId(clientId)}/weekly-reports/`;
 }
 
 async function getBlobWeeklyReport(clientId: string, periodEnd: string): Promise<WeeklyReport | null> {

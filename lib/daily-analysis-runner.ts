@@ -1,10 +1,11 @@
 import "server-only";
 
-import { createClientEnvironment, requireClientById } from "./clients.ts";
+import { createClientEnvironment } from "./clients.ts";
 import { analyzeDailyMarketingChanges } from "./daily-analysis-ai.ts";
 import { collectDailyMarketingData } from "./daily-analysis-data.ts";
 import { saveDailyAnalysis } from "./daily-analysis-storage.ts";
 import { executeDailyAnalysis, type DailyAnalysisResult } from "./daily-analysis.ts";
+import { getTenantRepository } from "./tenant-repository.ts";
 
 export async function runDailyMarketingAnalysis(
   clientId: string,
@@ -15,7 +16,8 @@ export async function runDailyMarketingAnalysis(
   } = {},
 ): Promise<DailyAnalysisResult> {
   const baseEnvironment = options.environment ?? process.env;
-  const client = requireClientById(clientId, baseEnvironment);
+  const client = await getTenantRepository().findWorkspaceById(clientId);
+  if (!client) throw new Error(`Unknown client workspace: ${clientId}`);
   const environment = createClientEnvironment(client, baseEnvironment);
   return executeDailyAnalysis(
     {
