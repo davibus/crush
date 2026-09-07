@@ -30,10 +30,7 @@ import {
 } from "@/lib/google-ads";
 import { getMarketingData } from "@/lib/marketing-data-source";
 import { buildPaidMediaAnalyticsContext } from "@/lib/paid-media-context";
-import {
-  listAuthorizedWorkspaceSummaries,
-  requireAuthenticatedPageUser,
-} from "@/lib/workspace-access";
+import { requireAuthenticatedPageUser } from "@/lib/workspace-access";
 
 const navigation = [
   ["Overview", "overview"],
@@ -277,23 +274,6 @@ export async function ClientDashboard({
 }
 
 export default async function Home() {
-  const user = await requireAuthenticatedPageUser();
-  const workspaces = await listAuthorizedWorkspaceSummaries(user.id);
-  if (workspaces[0]) redirect(`/clients/${workspaces[0].id}`);
-
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
-      <section className="max-w-lg rounded-3xl border border-slate-700 bg-slate-900 p-8">
-        <h1 className="text-2xl font-semibold">No workspace access</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-300">
-          Your account is authenticated, but it does not have a workspace membership yet.
-        </p>
-        <form action={async () => { "use server"; await signOut({ redirectTo: "/sign-in" }); }} className="mt-6">
-          <button className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold hover:bg-slate-800" type="submit">
-            Sign out
-          </button>
-        </form>
-      </section>
-    </main>
-  );
+  await requireAuthenticatedPageUser();
+  redirect("/agency");
 }

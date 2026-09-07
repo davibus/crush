@@ -25,6 +25,7 @@
     "verify:weekly-report": "node --conditions=react-server --experimental-strip-types scripts/verify-weekly-report.ts",
     "verify:clients": "node --conditions=react-server --experimental-strip-types scripts/verify-clients.ts",
     "verify:tenancy": "node --conditions=react-server --experimental-strip-types scripts/verify-tenancy.ts",
+    "verify:agency-dashboard": "node --conditions=react-server --experimental-strip-types scripts/verify-agency-dashboard.ts",
     "daily:analysis": "node --conditions=react-server --experimental-strip-types scripts/run-daily-analysis.ts",
     "weekly:report": "node --conditions=react-server --experimental-strip-types scripts/run-weekly-report.ts",
     "db:migrate": "node --conditions=react-server --experimental-strip-types scripts/migrate-database.ts",

@@ -52,7 +52,7 @@ npm install
 npm run dev
 ```
 
-Set `AUTH_ALLOW_DEV_LOGIN=true` and an `AUTH_SECRET` in `.env.local`, then open [http://localhost:3000](http://localhost:3000). Choose **Open local demo** to enter `/clients/demo` with bundled sample data. This development bypass is disabled whenever `NODE_ENV=production` or `DATABASE_URL` is configured.
+Set `AUTH_ALLOW_DEV_LOGIN=true` and an `AUTH_SECRET` in `.env.local`, then open [http://localhost:3000](http://localhost:3000). Choose **Open local demo** to enter `/agency`, where the existing local fixtures demonstrate the portfolio before you open `/clients/demo` with bundled sample data. This development bypass is disabled whenever `NODE_ENV=production` or `DATABASE_URL` is configured.
 
 For durable authentication, configure PostgreSQL and GitHub OAuth, then run `npm.cmd run db:migrate`. Sign in once and grant the new Auth.js user access with `npm.cmd run db:grant -- you@example.com demo`. See [the multi-client architecture guide](docs/multi-client.md) for production setup and future-client steps.
 
@@ -138,7 +138,11 @@ that were deliberately deferred.
 
 ## Application architecture
 
-Crush uses the Next.js 16 App Router: the main Server Component loads protected data and calculates the initial workspace, interactive Client Components handle charts and user actions, and Route Handlers run AI and reporting workflows. The stack includes React 19, TypeScript, Tailwind CSS 4, Recharts, Zod, the OpenAI Responses API, Google Ads REST reporting, the official GA4 Data API library, Vercel Cron, and private Vercel Blob storage. See the [case-study architecture diagram](docs/case-study.md#architecture-and-data-flow) for the full data flow.
+Crush uses the Next.js 16 App Router: Server Components load protected agency and workspace data, interactive Client Components handle charts and user actions, and Route Handlers run AI and reporting workflows. The stack includes React 19, TypeScript, Tailwind CSS 4, Recharts, Zod, the OpenAI Responses API, Google Ads REST reporting, the official GA4 Data API library, Vercel Cron, and private Vercel Blob storage. See the [case-study architecture diagram](docs/case-study.md#architecture-and-data-flow) for the full data flow.
+
+## Agency portfolio
+
+Authenticated users land on `/agency`, a read-only overview built only from their server-resolved workspace memberships. It shows deterministic account scores and KPI snapshots, explicit source and saved-report freshness, and a simple health queue before linking into the existing tenant-protected client dashboard. It does not compare missing metrics, combine incompatible currencies/reporting windows, use an LLM for ranking, or grant advertising-account write access. See [docs/agency-dashboard.md](docs/agency-dashboard.md) for the authorization flow, summary and health rules, fixture behavior, limitations, and verification command.
 
 ## Future roadmap
 
@@ -147,6 +151,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 ## Project documentation
 
 - [Multi-client architecture](docs/multi-client.md)
+- [Agency dashboard](docs/agency-dashboard.md)
 - [Project case study](docs/case-study.md)
 - [Post-V1 future roadmap](docs/future-roadmap.md)
 - [Demo script](docs/demo-script.md)

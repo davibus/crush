@@ -4,7 +4,7 @@ Crush treats the workspace ID as tenant context, but never as proof of access. A
 
 ## Authentication
 
-Crush uses Auth.js v5 rather than a custom password system. Production uses GitHub OAuth, encrypted HTTP-only Auth.js JWT sessions, and the official PostgreSQL adapter for durable users and provider accounts. The Auth.js handler is `/api/auth/[...nextauth]`; Next.js 16 `proxy.ts` performs an optimistic session check for `/clients/*`, while the page and data-access layer repeat secure checks close to the data.
+Crush uses Auth.js v5 rather than a custom password system. Production uses GitHub OAuth, encrypted HTTP-only Auth.js JWT sessions, and the official PostgreSQL adapter for durable users and provider accounts. The Auth.js handler is `/api/auth/[...nextauth]`; Next.js 16 `proxy.ts` performs an optimistic session check for `/agency/*` and `/clients/*`, while pages and the data-access layer repeat secure checks close to the data.
 
 For a zero-real-client local demo, set `AUTH_ALLOW_DEV_LOGIN=true` without `DATABASE_URL`. Auth.js then exposes a one-click `development` identity and the tenant repository uses development fixtures. Both conditions are enforced in code and `NODE_ENV=production` always disables this path. This is a convenience for local development and portfolio demonstrations, not a production authentication method.
 
@@ -64,7 +64,7 @@ Workspace IDs are validated before they become cache or storage path segments.
 5. Sign in once so Auth.js creates the user, then grant membership with `npm.cmd run db:grant -- user@example.com demo`.
 6. Configure the existing server-only Google Ads, GA4, OpenAI, Blob, and cron variables as needed.
 
-An authenticated user with no memberships sees a neutral no-workspace state. Creating invitations or an admin membership UI is intentionally deferred.
+An authenticated user with no memberships sees a neutral empty state on the agency dashboard. Creating invitations or an admin membership UI is intentionally deferred.
 
 ## Adding a future client
 
@@ -78,4 +78,4 @@ Billing, subscriptions, invitations, self-service tenant administration, a full 
 
 ## Verification
 
-Run `npm.cmd run verify:tenancy` for focused tenant checks, then the existing verification scripts, lint, build, and `git diff --check`. The tenant verification covers membership allow/deny behavior, indistinguishable unknown/non-member responses, API ID bypass attempts, selector projection, cache isolation, report path isolation, secret projection, path traversal rejection, and demo sample configuration.
+Run `npm.cmd run verify:tenancy` for focused tenant checks and `npm.cmd run verify:agency-dashboard` for membership-only portfolio aggregation, ordering, health, safe projections, and stored-state isolation. Then run the existing verification scripts, lint, build, and `git diff --check`. The tenant verification covers membership allow/deny behavior, indistinguishable unknown/non-member responses, API ID bypass attempts, selector projection, cache isolation, report path isolation, secret projection, path traversal rejection, and demo sample configuration.

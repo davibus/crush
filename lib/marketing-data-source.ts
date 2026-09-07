@@ -1,11 +1,11 @@
 import "server-only";
 
-import conversionData from "@/data/google-ads-conversions.json";
-import dailyData from "@/data/google-ads-daily.json";
-import geographyData from "@/data/google-ads-geography.json";
-import keywordData from "@/data/google-ads-keywords.json";
-import googleAdsData from "@/data/google-ads-sample.json";
-import searchTermData from "@/data/google-ads-search-terms.json";
+import conversionData from "../data/google-ads-conversions.json" with { type: "json" };
+import dailyData from "../data/google-ads-daily.json" with { type: "json" };
+import geographyData from "../data/google-ads-geography.json" with { type: "json" };
+import keywordData from "../data/google-ads-keywords.json" with { type: "json" };
+import googleAdsData from "../data/google-ads-sample.json" with { type: "json" };
+import searchTermData from "../data/google-ads-search-terms.json" with { type: "json" };
 import {
   createClientEnvironment,
   getClientCacheKey,
