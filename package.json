@@ -23,6 +23,7 @@
     "verify:ga4": "node --conditions=react-server --experimental-strip-types scripts/verify-ga4.ts",
     "verify:daily-analysis": "node --conditions=react-server --experimental-strip-types scripts/verify-daily-analysis.ts",
     "verify:weekly-report": "node --conditions=react-server --experimental-strip-types scripts/verify-weekly-report.ts",
+    "verify:clients": "node --conditions=react-server --experimental-strip-types scripts/verify-clients.ts",
     "daily:analysis": "node --conditions=react-server --experimental-strip-types scripts/run-daily-analysis.ts",
     "weekly:report": "node --conditions=react-server --experimental-strip-types scripts/run-weekly-report.ts"
   },

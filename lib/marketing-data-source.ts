@@ -7,12 +7,22 @@ import keywordData from "@/data/google-ads-keywords.json";
 import googleAdsData from "@/data/google-ads-sample.json";
 import searchTermData from "@/data/google-ads-search-terms.json";
 import {
+  createClientEnvironment,
+  getClientCacheKey,
+  type ClientWorkspace,
+} from "./clients.ts";
+import {
   fetchGA4Data,
   GA4ApiError,
   hasAnyGA4Config,
   readGA4ApiConfig,
 } from "./ga4-api.ts";
-import { fetchGoogleAdsData, GoogleAdsApiError } from "./google-ads-api.ts";
+import {
+  fetchGoogleAdsData,
+  GoogleAdsApiError,
+  readGoogleAdsApiConfig,
+  type GoogleAdsApiConfig,
+} from "./google-ads-api.ts";
 import type { GA4Data, GA4DataState } from "./ga4.ts";
 import type {
   GoogleAdsConversion,
@@ -46,12 +56,11 @@ export type MarketingDataSet = {
   ga4: GA4DataState;
 };
 
-let liveCache:
-  | { expiresAt: number; data: Awaited<ReturnType<typeof fetchGoogleAdsData>> }
-  | undefined;
-let ga4Cache:
-  | { cacheKey: string; expiresAt: number; data: GA4Data }
-  | undefined;
+const liveCache = new Map<
+  string,
+  { expiresAt: number; data: Awaited<ReturnType<typeof fetchGoogleAdsData>> }
+>();
+const ga4Cache = new Map<string, { expiresAt: number; data: GA4Data }>();
 
 function sampleData(requestedSource: MarketingDataSource, warning?: string): MarketingDataSet {
   return {
@@ -76,40 +85,44 @@ function requestedSource(environment: NodeJS.ProcessEnv): MarketingDataSource {
     : "sample";
 }
 
-async function liveData() {
-  if (liveCache && liveCache.expiresAt > Date.now()) return liveCache.data;
-  const data = await fetchGoogleAdsData();
-  liveCache = { data, expiresAt: Date.now() + LIVE_CACHE_TTL_MS };
+async function liveData(client: ClientWorkspace, config: GoogleAdsApiConfig) {
+  const cacheKey = getClientCacheKey(client.id, "google-ads", [
+    config.customerId,
+    config.loginCustomerId ?? "direct",
+    config.apiVersion,
+    config.dateRange,
+  ]);
+  const cached = liveCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+  const data = await fetchGoogleAdsData(config);
+  liveCache.set(cacheKey, { data, expiresAt: Date.now() + LIVE_CACHE_TTL_MS });
   return data;
 }
 
 async function ga4Data(
+  client: ClientWorkspace,
   environment: NodeJS.ProcessEnv,
 ): Promise<GA4DataState> {
   if (!hasAnyGA4Config(environment)) return { status: "unconfigured" };
 
   try {
     const config = readGA4ApiConfig(environment);
-    const cacheKey = [
+    const cacheKey = getClientCacheKey(client.id, "ga4", [
       config.propertyId,
       config.clientEmail,
       config.startDate,
       config.endDate,
-    ].join(":");
-    if (
-      ga4Cache &&
-      ga4Cache.cacheKey === cacheKey &&
-      ga4Cache.expiresAt > Date.now()
-    ) {
-      return { status: "available", data: ga4Cache.data };
+    ]);
+    const cached = ga4Cache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { status: "available", data: cached.data };
     }
 
     const data = await fetchGA4Data(config);
-    ga4Cache = {
-      cacheKey,
+    ga4Cache.set(cacheKey, {
       data,
       expiresAt: Date.now() + LIVE_CACHE_TTL_MS,
-    };
+    });
     return { status: "available", data };
   } catch (error) {
     console.error("GA4 data load failed; continuing without GA4 context.", {
@@ -126,14 +139,17 @@ async function ga4Data(
 }
 
 export async function getMarketingData(
-  environment: NodeJS.ProcessEnv = process.env,
+  client: ClientWorkspace,
+  baseEnvironment: NodeJS.ProcessEnv = process.env,
 ): Promise<MarketingDataSet> {
+  const environment = createClientEnvironment(client, baseEnvironment);
   const selected = requestedSource(environment);
-  const ga4 = await ga4Data(environment);
+  const ga4 = await ga4Data(client, environment);
   if (selected === "sample") return { ...sampleData(selected), ga4 };
 
   try {
-    const data = await liveData();
+    const config = readGoogleAdsApiConfig(environment);
+    const data = await liveData(client, config);
     return {
       source: "live",
       requestedSource: "live",

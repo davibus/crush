@@ -158,11 +158,43 @@ assert.equal(
   "Exact-period GA4 batches must run sequentially to avoid concurrent-request quota errors.",
 );
 assert.deepEqual(collected.dataSourcesUsed, ["google_ads", "ga4"]);
+assert.deepEqual(
+  collected.dataSourceStatus.map(({ source, status, included }) => ({ source, status, included })),
+  [
+    { source: "google_ads", status: "live", included: true },
+    { source: "ga4", status: "live", included: true },
+  ],
+);
 assert.equal(collected.yesterdaySummary.googleAds?.clicks, 10);
 assert.equal(collected.rolling7DaySummary.googleAds?.clicks, 70);
 assert.equal(collected.previous7DaySummary.googleAds?.clicks, 70);
 assert.equal(collected.yesterdaySummary.ga4?.sessions, 100);
 assert.deepEqual(collected.warnings, []);
+
+ga4DateRanges.length = 0;
+const hybridCollected = await collectDailyMarketingData(
+  utcRanges,
+  {
+    NODE_ENV: "test",
+    GOOGLE_ADS_DATA_SOURCE: "sample",
+    GA4_PROPERTY_ID: "123456789",
+    GA4_CLIENT_EMAIL: "reader@example-project.iam.gserviceaccount.com",
+    GA4_PRIVATE_KEY:
+      "-----BEGIN PRIVATE KEY-----\nTEST_KEY\n-----END PRIVATE KEY-----\n",
+  } as NodeJS.ProcessEnv,
+  dependencies,
+);
+assert.deepEqual(hybridCollected.dataSourcesUsed, ["ga4"]);
+assert.deepEqual(
+  hybridCollected.dataSourceStatus.map(({ source, status, included }) => ({ source, status, included })),
+  [
+    { source: "google_ads", status: "sample", included: false },
+    { source: "ga4", status: "live", included: true },
+  ],
+);
+assert.equal(hybridCollected.yesterdaySummary.googleAds, null);
+assert.equal(hybridCollected.yesterdaySummary.ga4?.sessions, 100);
+assert.match(hybridCollected.warnings[0] ?? "", /configured for sample data/);
 
 assert.deepEqual(compareMetricValues(120, 100), {
   currentValue: 120,
@@ -238,6 +270,10 @@ const result = await executeDailyAnalysis(
     async collect(ranges) {
       return {
         dataSourcesUsed: ["google_ads"],
+        dataSourceStatus: [
+          { source: "google_ads", status: "live", included: true, detail: "Live data included." },
+          { source: "ga4", status: "unconfigured", included: false, detail: "GA4 is not configured." },
+        ],
         yesterdaySummary: summary(ranges.yesterday, 200),
         previousDaySummary: summary(ranges.previousDay, 100),
         rolling7DaySummary: summary(ranges.rolling7Day, 700),
@@ -297,19 +333,19 @@ assert.deepEqual(stableAnalysis.findings.findings, []);
 
 const testDirectory = await mkdtemp(path.join(tmpdir(), "crush-daily-analysis-"));
 try {
-  await saveDailyAnalysis(result, testDirectory);
-  assert.deepEqual(await getDailyAnalysis(result.analysisDate, testDirectory), result);
+  await saveDailyAnalysis("demo", result, testDirectory);
+  assert.deepEqual(await getDailyAnalysis("demo", result.analysisDate, testDirectory), result);
   const replacement = {
     ...result,
     generatedAt: "2026-08-31T12:01:00.000Z",
   };
-  await saveDailyAnalysis(replacement, testDirectory);
+  await saveDailyAnalysis("demo", replacement, testDirectory);
   assert.deepEqual(
-    await getLatestDailyAnalysis(testDirectory),
+    await getLatestDailyAnalysis("demo", testDirectory),
     replacement,
     "Re-running a date should replace that date atomically without adding a duplicate.",
   );
-  assert.equal((await listDailyAnalyses(testDirectory)).length, 1);
+  assert.equal((await listDailyAnalyses("demo", testDirectory)).length, 1);
 } finally {
   await rm(testDirectory, { recursive: true, force: true });
 }

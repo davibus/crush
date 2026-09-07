@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 
+import { getClients } from "@/lib/clients";
 import { runDailyMarketingAnalysis } from "@/lib/daily-analysis-runner";
 
 export const runtime = "nodejs";
@@ -24,13 +25,18 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
   }
   try {
-    const result = await runDailyMarketingAnalysis();
-    return Response.json({
-      analysisDate: result.analysisDate,
-      generatedAt: result.generatedAt,
-      dataSourcesUsed: result.dataSourcesUsed,
-      materialChangeCount: result.materialChanges.length,
-    });
+    const results = [];
+    for (const client of getClients().filter(({ status }) => status === "active")) {
+      const result = await runDailyMarketingAnalysis(client.id);
+      results.push({
+        clientId: client.id,
+        analysisDate: result.analysisDate,
+        generatedAt: result.generatedAt,
+        dataSourcesUsed: result.dataSourcesUsed,
+        materialChangeCount: result.materialChanges.length,
+      });
+    }
+    return Response.json({ results });
   } catch (error) {
     console.error("Scheduled Daily Analysis failed.", {
       name: error instanceof Error ? error.name : "UnknownError",

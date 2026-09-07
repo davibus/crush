@@ -44,9 +44,9 @@ used to invent a prior week.
 ## Generate, retrieve, and schedule
 
 - Click **Generate Weekly Report** on the dashboard.
-- Send `POST /api/reports/weekly` to generate and persist a report.
-- Send `GET /api/reports/weekly` to retrieve the latest saved report.
-- Run `npm run weekly:report` from a scheduler or local shell.
+- Send `POST /api/reports/weekly?clientId=demo` to generate and persist a report.
+- Send `GET /api/reports/weekly?clientId=demo` to retrieve the latest saved report.
+- Run `npm run weekly:report -- demo` from a scheduler or local shell.
 - Call `GET /api/reports/weekly/cron` with
   `Authorization: Bearer <CRON_SECRET>` from a cron service.
 
@@ -55,7 +55,8 @@ Cron responses contain only period and status metadata, not detailed marketing
 data.
 
 Local reports are saved by reporting-period end date under
-`runtime/weekly-reports/`. Set `WEEKLY_REPORT_STORAGE_DIR` to override it. On
+`runtime/clients/{clientId}/weekly-reports/`. Set
+`WEEKLY_REPORT_STORAGE_DIR` to override the storage root. On
 Vercel, the existing private Blob integration is used when no directory override
 is set. Rerunning a period atomically replaces its prior report.
 

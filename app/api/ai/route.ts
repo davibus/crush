@@ -10,6 +10,7 @@ import {
   type PreparedCampaignPerformanceAnalysis,
   validateCampaignAnalysisResponse,
 } from "@/lib/campaign-performance-analyzer";
+import { getClientById, getDefaultClient } from "@/lib/clients";
 import {
   marketingChatRequestSchema,
   marketingChatResponseSchema,
@@ -96,7 +97,17 @@ export async function POST(request: Request) {
     return errorResponse("Request body must be a JSON object.", 400);
   }
 
-  const requestBody = body as AiRequest;
+  const submittedBody = body as AiRequest;
+  const submittedClientId = submittedBody.clientId;
+  if (submittedClientId !== undefined && typeof submittedClientId !== "string") {
+    return errorResponse("Client ID must be a string.", 400);
+  }
+  const client = submittedClientId
+    ? getClientById(submittedClientId)
+    : getDefaultClient();
+  if (!client) return errorResponse("Unknown client workspace.", 404);
+  const requestBody = { ...submittedBody };
+  delete requestBody.clientId;
   const isChatRequest = "question" in requestBody || "history" in requestBody;
   let chatRequest: MarketingChatRequest | undefined;
 
@@ -124,7 +135,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const marketingData = await getMarketingData();
+  const marketingData = await getMarketingData(client);
   const webAnalytics =
     marketingData.ga4.status === "available"
       ? buildPaidMediaAnalyticsContext(

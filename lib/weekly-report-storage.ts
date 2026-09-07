@@ -3,14 +3,19 @@ import path from "node:path";
 
 import { get, list, put } from "@vercel/blob";
 
+import { requireClientById } from "./clients.ts";
 import { weeklyReportSchema, type WeeklyReport } from "./weekly-report.ts";
 
 const FILE_NAME = /^\d{4}-\d{2}-\d{2}\.json$/;
-const BLOB_PREFIX = "weekly-reports/";
 
-function storageDirectory(override?: string): string {
+function storageRoot(override?: string): string {
   const configured = override?.trim() || process.env.WEEKLY_REPORT_STORAGE_DIR?.trim();
-  return path.resolve(/*turbopackIgnore: true*/ configured || path.join(process.cwd(), "runtime", "weekly-reports"));
+  return path.resolve(/*turbopackIgnore: true*/ configured || path.join(process.cwd(), "runtime"));
+}
+
+function storageDirectory(clientId: string, override?: string): string {
+  const client = requireClientById(clientId);
+  return path.join(storageRoot(override), "clients", client.id, "weekly-reports");
 }
 
 function shouldUseVercelBlob(override?: string): boolean {
@@ -28,22 +33,28 @@ function parseWeeklyReport(value: string, periodEnd: string): WeeklyReport {
   return parsed.data;
 }
 
-function blobPath(periodEnd: string): string {
-  return `${BLOB_PREFIX}${validateDate(periodEnd)}.json`;
+export function getWeeklyReportStorageKey(clientId: string, periodEnd: string): string {
+  const client = requireClientById(clientId);
+  return `clients/${client.id}/weekly-reports/${validateDate(periodEnd)}.json`;
 }
 
-async function getBlobWeeklyReport(periodEnd: string): Promise<WeeklyReport | null> {
-  const result = await get(blobPath(periodEnd), { access: "private", useCache: false });
+function blobPrefix(clientId: string): string {
+  const client = requireClientById(clientId);
+  return `clients/${client.id}/weekly-reports/`;
+}
+
+async function getBlobWeeklyReport(clientId: string, periodEnd: string): Promise<WeeklyReport | null> {
+  const result = await get(getWeeklyReportStorageKey(clientId, periodEnd), { access: "private", useCache: false });
   if (!result) return null;
   if (!result.stream) throw new Error(`Saved weekly report ${periodEnd} returned no content.`);
   return parseWeeklyReport(await new Response(result.stream).text(), periodEnd);
 }
 
-export async function saveWeeklyReport(report: WeeklyReport, directory?: string): Promise<void> {
+export async function saveWeeklyReport(clientId: string, report: WeeklyReport, directory?: string): Promise<void> {
   const validated = weeklyReportSchema.parse(report);
   const periodEnd = validated.reportingPeriod.endDate;
   if (shouldUseVercelBlob(directory)) {
-    await put(blobPath(periodEnd), `${JSON.stringify(validated, null, 2)}\n`, {
+    await put(getWeeklyReportStorageKey(clientId, periodEnd), `${JSON.stringify(validated, null, 2)}\n`, {
       access: "private",
       addRandomSuffix: false,
       allowOverwrite: true,
@@ -52,7 +63,7 @@ export async function saveWeeklyReport(report: WeeklyReport, directory?: string)
     });
     return;
   }
-  const targetDirectory = storageDirectory(directory);
+  const targetDirectory = storageDirectory(clientId, directory);
   await mkdir(targetDirectory, { recursive: true });
   const target = path.join(targetDirectory, `${validateDate(periodEnd)}.json`);
   const temporary = path.join(targetDirectory, `.${periodEnd}.${process.pid}.${Date.now()}.tmp`);
@@ -60,11 +71,11 @@ export async function saveWeeklyReport(report: WeeklyReport, directory?: string)
   await rename(temporary, target);
 }
 
-export async function getWeeklyReport(periodEnd: string, directory?: string): Promise<WeeklyReport | null> {
-  if (shouldUseVercelBlob(directory)) return getBlobWeeklyReport(periodEnd);
+export async function getWeeklyReport(clientId: string, periodEnd: string, directory?: string): Promise<WeeklyReport | null> {
+  if (shouldUseVercelBlob(directory)) return getBlobWeeklyReport(clientId, periodEnd);
   try {
     return parseWeeklyReport(
-      await readFile(path.join(storageDirectory(directory), `${validateDate(periodEnd)}.json`), "utf8"),
+      await readFile(path.join(storageDirectory(clientId, directory), `${validateDate(periodEnd)}.json`), "utf8"),
       periodEnd,
     );
   } catch (error) {
@@ -73,26 +84,27 @@ export async function getWeeklyReport(periodEnd: string, directory?: string): Pr
   }
 }
 
-export async function listWeeklyReports(directory?: string): Promise<WeeklyReport[]> {
+export async function listWeeklyReports(clientId: string, directory?: string): Promise<WeeklyReport[]> {
   let dates: string[];
   if (shouldUseVercelBlob(directory)) {
+    const prefix = blobPrefix(clientId);
     const paths: string[] = [];
     let cursor: string | undefined;
     do {
-      const page = await list({ prefix: BLOB_PREFIX, cursor, limit: 1000 });
+      const page = await list({ prefix, cursor, limit: 1000 });
       paths.push(...page.blobs.map((blob) => blob.pathname));
       cursor = page.cursor;
     } while (cursor);
     dates = paths
-      .map((pathname) => pathname.slice(BLOB_PREFIX.length))
+      .map((pathname) => pathname.slice(prefix.length))
       .filter((file) => FILE_NAME.test(file))
       .sort((left, right) => right.localeCompare(left))
       .map((file) => file.slice(0, -5));
-    const results = await Promise.all(dates.map(getBlobWeeklyReport));
+    const results = await Promise.all(dates.map((date) => getBlobWeeklyReport(clientId, date)));
     return results.filter((report): report is WeeklyReport => Boolean(report));
   }
   try {
-    dates = (await readdir(/*turbopackIgnore: true*/ storageDirectory(directory)))
+    dates = (await readdir(/*turbopackIgnore: true*/ storageDirectory(clientId, directory)))
       .filter((file) => FILE_NAME.test(file))
       .sort((left, right) => right.localeCompare(left))
       .map((file) => file.slice(0, -5));
@@ -100,10 +112,10 @@ export async function listWeeklyReports(directory?: string): Promise<WeeklyRepor
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
   }
-  const results = await Promise.all(dates.map((date) => getWeeklyReport(date, directory)));
+  const results = await Promise.all(dates.map((date) => getWeeklyReport(clientId, date, directory)));
   return results.filter((report): report is WeeklyReport => Boolean(report));
 }
 
-export async function getLatestWeeklyReport(directory?: string): Promise<WeeklyReport | null> {
-  return (await listWeeklyReports(directory))[0] ?? null;
+export async function getLatestWeeklyReport(clientId: string, directory?: string): Promise<WeeklyReport | null> {
+  return (await listWeeklyReports(clientId, directory))[0] ?? null;
 }

@@ -27,8 +27,10 @@ type AiResponse = {
 };
 
 export default function MarketingInsightsWorkspace({
+  clientId,
   currency,
 }: {
+  clientId: string;
   currency: string;
 }) {
   const [prompt, setPrompt] = useState(
@@ -52,7 +54,7 @@ export default function MarketingInsightsWorkspace({
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ clientId, prompt }),
       });
       const result = (await response.json()) as AiResponse;
 

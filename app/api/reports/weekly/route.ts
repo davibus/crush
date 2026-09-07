@@ -14,9 +14,16 @@ function failure(error: unknown) {
   );
 }
 
-export async function GET() {
+function clientFromRequest(request: Request) {
+  const clientId = new URL(request.url).searchParams.get("clientId");
+  return clientId ? getClientById(clientId) : getDefaultClient();
+}
+
+export async function GET(request: Request) {
   try {
-    const report = await getLatestWeeklyReport();
+    const client = clientFromRequest(request);
+    if (!client) return Response.json({ error: "Unknown client workspace." }, { status: 404 });
+    const report = await getLatestWeeklyReport(client.id);
     return report
       ? Response.json(report)
       : Response.json({ error: "No saved Weekly Marketing Report is available yet." }, { status: 404 });
@@ -25,10 +32,13 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    return Response.json(await runWeeklyMarketingReport());
+    const client = clientFromRequest(request);
+    if (!client) return Response.json({ error: "Unknown client workspace." }, { status: 404 });
+    return Response.json(await runWeeklyMarketingReport(client.id));
   } catch (error) {
     return failure(error);
   }
 }
+import { getClientById, getDefaultClient } from "@/lib/clients";

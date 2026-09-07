@@ -1,14 +1,18 @@
 import "server-only";
 
+import { createClientEnvironment, requireClientById } from "./clients.ts";
 import { enrichWeeklyReport } from "./weekly-report-ai.ts";
 import { collectWeeklyMarketingData } from "./weekly-report-data.ts";
 import { saveWeeklyReport } from "./weekly-report-storage.ts";
 import { executeWeeklyReport, type WeeklyReport } from "./weekly-report.ts";
 
 export async function runWeeklyMarketingReport(
+  clientId: string,
   options: { now?: Date; timeZone?: string; environment?: NodeJS.ProcessEnv } = {},
 ): Promise<WeeklyReport> {
-  const environment = options.environment ?? process.env;
+  const baseEnvironment = options.environment ?? process.env;
+  const client = requireClientById(clientId, baseEnvironment);
+  const environment = createClientEnvironment(client, baseEnvironment);
   return executeWeeklyReport(
     {
       now: options.now,
@@ -21,7 +25,7 @@ export async function runWeeklyMarketingReport(
     {
       collect: (ranges) => collectWeeklyMarketingData(ranges, environment),
       enrich: (draft) => enrichWeeklyReport(draft, environment),
-      save: (report) => saveWeeklyReport(report, environment.WEEKLY_REPORT_STORAGE_DIR),
+      save: (report) => saveWeeklyReport(client.id, report, environment.WEEKLY_REPORT_STORAGE_DIR),
     },
   );
 }

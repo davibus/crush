@@ -3,17 +3,22 @@ import path from "node:path";
 
 import { get, list, put } from "@vercel/blob";
 
+import { requireClientById } from "./clients.ts";
 import type { DailyAnalysisResult } from "./daily-analysis.ts";
 
 const FILE_NAME = /^\d{4}-\d{2}-\d{2}\.json$/;
-const BLOB_PREFIX = "daily-analyses/";
 
-function storageDirectory(override?: string): string {
+function storageRoot(override?: string): string {
   const configuredDirectory =
     override?.trim() || process.env.DAILY_ANALYSIS_STORAGE_DIR?.trim();
   return path.resolve(/*turbopackIgnore: true*/
-    configuredDirectory || path.join(process.cwd(), "runtime", "daily-analyses"),
+    configuredDirectory || path.join(process.cwd(), "runtime"),
   );
+}
+
+function storageDirectory(clientId: string, override?: string): string {
+  const client = requireClientById(clientId);
+  return path.join(storageRoot(override), "clients", client.id, "daily-analysis");
 }
 
 function shouldUseVercelBlob(override?: string): boolean {
@@ -52,14 +57,21 @@ function parseDailyAnalysis(value: string, analysisDate: string): DailyAnalysisR
   return parsed;
 }
 
-function blobPath(analysisDate: string): string {
-  return `${BLOB_PREFIX}${validateDate(analysisDate)}.json`;
+export function getDailyAnalysisStorageKey(clientId: string, analysisDate: string): string {
+  const client = requireClientById(clientId);
+  return `clients/${client.id}/daily-analysis/${validateDate(analysisDate)}.json`;
+}
+
+function blobPrefix(clientId: string): string {
+  const client = requireClientById(clientId);
+  return `clients/${client.id}/daily-analysis/`;
 }
 
 async function getBlobDailyAnalysis(
+  clientId: string,
   analysisDate: string,
 ): Promise<DailyAnalysisResult | null> {
-  const result = await get(blobPath(analysisDate), {
+  const result = await get(getDailyAnalysisStorageKey(clientId, analysisDate), {
     access: "private",
     useCache: false,
   });
@@ -74,12 +86,13 @@ async function getBlobDailyAnalysis(
 }
 
 export async function saveDailyAnalysis(
+  clientId: string,
   result: DailyAnalysisResult,
   directory?: string,
 ): Promise<void> {
   if (shouldUseVercelBlob(directory)) {
     await put(
-      blobPath(result.analysisDate),
+      getDailyAnalysisStorageKey(clientId, result.analysisDate),
       `${JSON.stringify(result, null, 2)}\n`,
       {
         access: "private",
@@ -91,7 +104,7 @@ export async function saveDailyAnalysis(
     );
     return;
   }
-  const targetDirectory = storageDirectory(directory);
+  const targetDirectory = storageDirectory(clientId, directory);
   await mkdir(targetDirectory, { recursive: true });
   const target = path.join(targetDirectory, `${validateDate(result.analysisDate)}.json`);
   const temporary = path.join(
@@ -106,12 +119,13 @@ export async function saveDailyAnalysis(
 }
 
 export async function getDailyAnalysis(
+  clientId: string,
   analysisDate: string,
   directory?: string,
 ): Promise<DailyAnalysisResult | null> {
-  if (shouldUseVercelBlob(directory)) return getBlobDailyAnalysis(analysisDate);
+  if (shouldUseVercelBlob(directory)) return getBlobDailyAnalysis(clientId, analysisDate);
   const target = path.join(
-    storageDirectory(directory),
+    storageDirectory(clientId, directory),
     `${validateDate(analysisDate)}.json`,
   );
   try {
@@ -123,25 +137,27 @@ export async function getDailyAnalysis(
 }
 
 export async function listDailyAnalyses(
+  clientId: string,
   directory?: string,
 ): Promise<DailyAnalysisResult[]> {
   if (shouldUseVercelBlob(directory)) {
+    const prefix = blobPrefix(clientId);
     const pathnames: string[] = [];
     let cursor: string | undefined;
     do {
-      const page = await list({ prefix: BLOB_PREFIX, cursor, limit: 1000 });
+      const page = await list({ prefix, cursor, limit: 1000 });
       pathnames.push(...page.blobs.map((blob) => blob.pathname));
       cursor = page.cursor;
     } while (cursor);
     const dates = pathnames
-      .map((pathname) => pathname.slice(BLOB_PREFIX.length))
+      .map((pathname) => pathname.slice(prefix.length))
       .filter((file) => FILE_NAME.test(file))
       .sort((left, right) => right.localeCompare(left))
       .map((file) => file.slice(0, -5));
-    const results = await Promise.all(dates.map(getBlobDailyAnalysis));
+    const results = await Promise.all(dates.map((date) => getBlobDailyAnalysis(clientId, date)));
     return results.filter((result): result is DailyAnalysisResult => Boolean(result));
   }
-  const targetDirectory = storageDirectory(directory);
+  const targetDirectory = storageDirectory(clientId, directory);
   let files: string[];
   try {
     files = await readdir(/*turbopackIgnore: true*/ targetDirectory);
@@ -154,13 +170,14 @@ export async function listDailyAnalyses(
     .sort((left, right) => right.localeCompare(left))
     .map((file) => file.slice(0, -5));
   const results = await Promise.all(
-    dates.map((date) => getDailyAnalysis(date, targetDirectory)),
+    dates.map((date) => getDailyAnalysis(clientId, date, storageRoot(directory))),
   );
   return results.filter((result): result is DailyAnalysisResult => Boolean(result));
 }
 
 export async function getLatestDailyAnalysis(
+  clientId: string,
   directory?: string,
 ): Promise<DailyAnalysisResult | null> {
-  return (await listDailyAnalyses(directory))[0] ?? null;
+  return (await listDailyAnalyses(clientId, directory))[0] ?? null;
 }

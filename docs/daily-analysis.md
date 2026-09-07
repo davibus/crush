@@ -32,11 +32,21 @@ normalizes spend, impressions, clicks, CTR, CPC, conversions, conversion rate,
 CPA, conversion value, and ROAS. Ratios with a zero denominator are unavailable,
 not zero.
 
+When `GOOGLE_ADS_DATA_SOURCE=sample`, the dashboard continues to use the local
+sample Google Ads dataset. Daily Analysis labels that source as **sample / not
+included** because its fixed historical rows are not remapped to the current
+completed-day windows. This prevents sample metrics from being presented as
+current results while allowing live GA4 analysis to run independently.
+
 GA4 is included independently when its service-account settings are present. It
 requests each exact period and normalizes sessions, users, new users, engaged
 sessions, engagement rate, key events, and total revenue. A failed or
 unconfigured source produces a warning without preventing the other source from
 completing.
+
+Each saved analysis records separate source statuses. In the intended hybrid
+demo configuration, the UI shows **GA4 · live · included** and **Google Ads ·
+sample · not included**, with a note explaining the dated sample-data boundary.
 
 ## Material changes
 
@@ -84,14 +94,15 @@ saved with a warning, so source collection and comparison still complete.
 ## Running and saving
 
 - Click **Run Daily Analysis** in the workspace.
-- Send `POST /api/analysis/daily` during development.
-- Run `npm run daily:analysis`; the runner loads `.env.local` through Next's
+- Send `POST /api/analysis/daily?clientId=demo` during development.
+- Run `npm run daily:analysis -- demo`; the runner loads `.env.local` through Next's
   environment loader.
-- Read the latest saved result with `GET /api/analysis/daily`.
+- Read the latest saved result with `GET /api/analysis/daily?clientId=demo`.
 
-Results are saved by analysis date as JSON in `runtime/daily-analyses/` by
-default. The directory is gitignored because it may contain private live data.
-Set `DAILY_ANALYSIS_STORAGE_DIR` to override it. On Vercel, connect a private
+Results are saved by analysis date under
+`runtime/clients/{clientId}/daily-analysis/` by default. The directory is
+gitignored because it may contain private live data. Set
+`DAILY_ANALYSIS_STORAGE_DIR` to override the storage root. On Vercel, connect a private
 Vercel Blob store; the platform supplies `BLOB_READ_WRITE_TOKEN` (or its OIDC
 store settings), and the same date-keyed JSON is stored privately and durably.
 Storage is abstracted behind
@@ -102,8 +113,9 @@ Storage is abstracted behind
 
 `vercel.json` schedules `/api/analysis/daily/cron` at `0 8 * * *` (08:00 UTC).
 The route requires `Authorization: Bearer <CRON_SECRET>` and returns no detailed
-marketing data. The manual/UI endpoint remains separate. For local or non-Vercel
-scheduling, invoke `npm run daily:analysis` once per day or call the protected
+marketing data. It runs each active server-registry workspace. The manual/UI
+endpoint remains separate. For local or non-Vercel scheduling, invoke
+`npm run daily:analysis -- <clientId>` once per day or call the protected
 cron route with the same bearer header.
 
 The core `runDailyMarketingAnalysis` function has no HTTP dependency. Local JSON

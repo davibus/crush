@@ -1,6 +1,10 @@
+import Image from "next/image";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
+import crushTurtle from "@/images/crush-turtle.png";
 import AccountAudit from "@/app/components/account-audit";
+import ClientSelector from "@/app/components/client-selector";
 import DailyAnalysisPanel from "@/app/components/daily-analysis-panel";
 import GA4ContextPanel from "@/app/components/ga4-context-panel";
 import KpiOverview from "@/app/components/kpi-overview";
@@ -9,6 +13,11 @@ import MarketingInsightsWorkspace from "@/app/components/marketing-insights-work
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
 import WeeklyReportPanel from "@/app/components/weekly-report-panel";
 import { runAccountAudit } from "@/lib/account-audit";
+import {
+  getClientSummaries,
+  getDefaultClient,
+  type ClientWorkspace,
+} from "@/lib/clients";
 import {
   buildCampaignComparisonData,
   buildGeographicPerformanceData,
@@ -49,9 +58,9 @@ function SectionIntro({ eyebrow, title, description }: { eyebrow: string; title:
   );
 }
 
-export default async function Home() {
+export async function ClientDashboard({ client }: { client: ClientWorkspace }) {
   await connection();
-  const marketingData = await getMarketingData();
+  const marketingData = await getMarketingData(client);
   const data = marketingData.campaignData;
   const isDemo = marketingData.source === "sample";
   const paidMediaContext = marketingData.ga4.status === "available"
@@ -76,8 +85,20 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen overflow-x-clip bg-slate-50 text-slate-900">
-      <div className="border-b border-slate-800 bg-slate-950 text-white">
-        <div className="mx-auto max-w-[90rem] px-4 py-5 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden border-b border-slate-800 bg-slate-950 text-white">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-full opacity-35 sm:w-4/5 sm:opacity-45 lg:w-3/5">
+          <Image
+            alt=""
+            className="object-cover object-[70%_center]"
+            fill
+            priority
+            sizes="(min-width: 1024px) 60vw, (min-width: 640px) 80vw, 100vw"
+            src={crushTurtle}
+          />
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/20" />
+
+        <div className="relative z-10 mx-auto max-w-[90rem] px-4 py-5 sm:px-6 lg:px-8">
           <header className="flex flex-wrap items-center justify-between gap-4">
             <a className="inline-flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950" href="#dashboard-content">
               <span className="flex size-9 items-center justify-center rounded-xl bg-blue-500 text-base font-bold shadow-lg shadow-blue-950/40">C</span>
@@ -87,6 +108,7 @@ export default async function Home() {
               </span>
             </a>
             <div className="flex flex-wrap items-center justify-end gap-2 text-xs font-medium">
+              <ClientSelector activeClientId={client.id} clients={getClientSummaries()} />
               <span className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-slate-200">
                 <StatusDot tone={isDemo ? "blue" : "green"} />
                 {isDemo ? "Demo data" : "Live Google Ads"}
@@ -98,7 +120,10 @@ export default async function Home() {
           <div className="grid gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end lg:py-16">
             <div className="max-w-4xl">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">Unified marketing intelligence</p>
-              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">AI Marketing Command Center</h1>
+              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
+                <span className="block">Crush</span>
+                <span className="block">AI Marketing Command Center</span>
+              </h1>
               <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
                 Crush combines paid-media performance and GA4 context with evidence-grounded AI analysis, automated audits, reporting, and conversational exploration—all in one operating view.
               </p>
@@ -214,13 +239,13 @@ export default async function Home() {
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="ai-analysis">
           <SectionIntro description="Combine deterministic comparisons with structured AI interpretation to focus attention on changes that matter." eyebrow="AI analysis" title="Move from signals to next actions" />
-          <DailyAnalysisPanel />
-          <MarketingInsightsWorkspace currency={data.account.currency} />
+          <DailyAnalysisPanel clientId={client.id} />
+          <MarketingInsightsWorkspace clientId={client.id} currency={data.account.currency} />
         </section>
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="reporting">
           <SectionIntro description="Create a repeatable, evidence-linked weekly narrative for stakeholders without rebuilding the analysis by hand." eyebrow="Reporting" title="Package performance for the week" />
-          <WeeklyReportPanel />
+          <WeeklyReportPanel clientId={client.id} />
         </section>
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="account-health">
@@ -230,11 +255,15 @@ export default async function Home() {
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="ask-your-data">
           <SectionIntro description="Ask a specialist or let Crush route the question, with answers constrained to evidence in the loaded account data." eyebrow="Ask your data" title="Explore performance conversationally" />
-          <MarketingDataChat currency={data.account.currency} dataSourceLabel={marketingData.sourceLabel} />
+          <MarketingDataChat clientId={client.id} currency={data.account.currency} dataSourceLabel={marketingData.sourceLabel} />
         </section>
 
         <footer className="mt-14 border-t border-slate-200 py-8 text-sm text-slate-500"><p>Crush · AI Marketing Command Center · Portfolio product demo</p></footer>
       </div>
     </main>
   );
+}
+
+export default function Home() {
+  redirect(`/clients/${getDefaultClient().id}`);
 }

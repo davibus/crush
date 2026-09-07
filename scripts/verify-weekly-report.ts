@@ -113,12 +113,12 @@ assert.equal(
 
 const directory = await mkdtemp(path.join(tmpdir(), "crush-weekly-report-"));
 try {
-  await saveWeeklyReport(report, directory);
-  assert.deepEqual(await getWeeklyReport(report.reportingPeriod.endDate, directory), report);
+  await saveWeeklyReport("demo", report, directory);
+  assert.deepEqual(await getWeeklyReport("demo", report.reportingPeriod.endDate, directory), report);
   const replacement = { ...report, generatedAt: "2026-08-31T12:01:00.000Z" };
-  await saveWeeklyReport(replacement, directory);
-  assert.deepEqual(await getLatestWeeklyReport(directory), replacement);
-  assert.equal((await listWeeklyReports(directory)).length, 1);
+  await saveWeeklyReport("demo", replacement, directory);
+  assert.deepEqual(await getLatestWeeklyReport("demo", directory), replacement);
+  assert.equal((await listWeeklyReports("demo", directory)).length, 1);
 } finally {
   await rm(directory, { recursive: true, force: true });
 }

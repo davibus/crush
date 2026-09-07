@@ -1,6 +1,8 @@
-# Crush — Version 1.0
+# Crush — Version 2 foundation
 
-**Crush Version 1.0 is an AI marketing command center that turns Google Ads performance and optional GA4 context into explainable decisions.** It combines a decision-focused dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows in one Next.js application.
+**Crush Version 2 begins with an explicit multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance and optional GA4 context into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
+
+The current V2 architecture provides server-controlled `demo`, `client-a`, and `client-b` workspaces at `/clients/[clientId]`, client-scoped caches and report storage, and a header workspace selector. It intentionally does not yet include authentication, a database, billing, invitations, or account-writing features. See [the multi-client architecture guide](docs/multi-client.md).
 
 [Case study](docs/case-study.md) · [2–3 minute demo script](docs/demo-script.md) · [Portfolio/resume copy](docs/portfolio-entry.md) · [GitHub repository](https://github.com/davibus/crush)
 
@@ -39,7 +41,7 @@ The dashboard is useful on first open without credentials. By default, it loads 
 - [Capture the eight recommended product screenshots](docs/screenshots/README.md)
 - [Browse the source repository](https://github.com/davibus/crush)
 
-For a production-like setup, Google Ads can switch to read-only live reporting with `GOOGLE_ADS_DATA_SOURCE=live`, while GA4 connects independently. If a live Google Ads request fails, the UI identifies the fallback and continues with demo data; technical diagnostics stay in server logs. AI Insights and optional daily/weekly prioritization explain when OpenAI is unavailable instead of blocking the deterministic product.
+For a production-like setup, a configured workspace can switch to read-only live reporting with its `*_DATA_SOURCE=live` setting, while its GA4 property connects independently. If a live Google Ads request fails, the UI identifies the fallback and continues with demo data; technical diagnostics stay in server logs. AI Insights and optional daily/weekly prioritization explain when OpenAI is unavailable instead of blocking the deterministic product.
 
 ## Getting Started
 
@@ -50,7 +52,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000); it redirects to the default demo workspace at `/clients/demo`.
 
 The application uses the included sample Google Ads dataset by default, so no external account is required for local development.
 
@@ -61,7 +63,7 @@ Crush can replace the sample dataset with read-only Google Ads API reporting whi
 1. Create a Google Cloud OAuth client, enable the Google Ads API, and obtain a refresh token authorized with the `https://www.googleapis.com/auth/adwords` scope.
 2. Request or use a Google Ads developer token. If the selected account is reached through a manager account, note that manager customer ID as well.
 3. Copy `.env.example` to `.env.local`, fill in the server-only values, and leave every credential without a `NEXT_PUBLIC_` prefix.
-4. Set `GOOGLE_ADS_DATA_SOURCE=live`, then restart the development server.
+4. Set the selected workspace's data source and identifiers (for example `CLIENT_A_DATA_SOURCE=live` and `CLIENT_A_GOOGLE_ADS_CUSTOMER_ID=...`), then restart the development server.
 
 Customer IDs may contain dashes in the environment file; Crush normalizes and validates them before sending requests. `GOOGLE_ADS_LOGIN_CUSTOMER_ID` is optional and should identify the manager account, not the client account. The reporting window defaults to `LAST_30_DAYS` and supports the values documented in `.env.example`.
 
@@ -142,6 +144,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 
 ## Project documentation
 
+- [Multi-client architecture](docs/multi-client.md)
 - [Project case study](docs/case-study.md)
 - [Post-V1 future roadmap](docs/future-roadmap.md)
 - [Demo script](docs/demo-script.md)

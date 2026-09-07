@@ -33,14 +33,14 @@ function ReportItems({ empty, items }: { empty: string; items: WeeklyReportItem[
   );
 }
 
-export default function WeeklyReportPanel() {
+export default function WeeklyReportPanel({ clientId }: { clientId: string }) {
   const [report, setReport] = useState<WeeklyReport | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    fetch("/api/reports/weekly")
+    fetch(`/api/reports/weekly?clientId=${encodeURIComponent(clientId)}`)
       .then(async (response) => {
         const result = (await response.json()) as WeeklyReportResponse;
         if (!response.ok) {
@@ -55,13 +55,16 @@ export default function WeeklyReportPanel() {
       })
       .finally(() => { if (active) setIsLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [clientId]);
 
   async function generateReport() {
     setIsLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/reports/weekly", { method: "POST" });
+      const response = await fetch(
+        `/api/reports/weekly?clientId=${encodeURIComponent(clientId)}`,
+        { method: "POST" },
+      );
       const result = (await response.json()) as WeeklyReportResponse;
       if (!response.ok) throw new Error(result.error ?? "Weekly Marketing Report could not complete.");
       setReport(result);

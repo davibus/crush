@@ -200,9 +200,11 @@ function AssistantMessage({
 }
 
 export default function MarketingDataChat({
+  clientId,
   currency,
   dataSourceLabel = "loaded Google Ads data",
 }: {
+  clientId: string;
   currency: string;
   dataSourceLabel?: string;
 }) {
@@ -242,7 +244,7 @@ export default function MarketingDataChat({
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: submittedQuestion, history, specialistId }),
+        body: JSON.stringify({ clientId, question: submittedQuestion, history, specialistId }),
       });
       const result = (await response.json()) as unknown;
 

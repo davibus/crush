@@ -3,6 +3,13 @@ import type { CalculatedGoogleAdsMetrics } from "./google-ads.ts";
 export type DailyAnalysisSource = "google_ads" | "ga4";
 export type DailyAnalysisPeriod = "yesterday" | "rolling7Day";
 
+export type DailyAnalysisSourceStatus = {
+  source: DailyAnalysisSource;
+  status: "live" | "sample" | "unconfigured" | "unavailable";
+  included: boolean;
+  detail: string;
+};
+
 export type DateRange = {
   startDate: string;
   endDate: string;
@@ -129,6 +136,7 @@ export type DailyAnalysisResult = {
   analysisDate: string;
   timeZone: string;
   dataSourcesUsed: DailyAnalysisSource[];
+  dataSourceStatus?: DailyAnalysisSourceStatus[];
   yesterdaySummary: MarketingPeriodSummary;
   previousDaySummary: MarketingPeriodSummary;
   yesterdayComparison: PeriodComparison;
@@ -142,6 +150,7 @@ export type DailyAnalysisResult = {
 
 export type DailyAnalysisCollection = {
   dataSourcesUsed: DailyAnalysisSource[];
+  dataSourceStatus: DailyAnalysisSourceStatus[];
   yesterdaySummary: MarketingPeriodSummary;
   previousDaySummary: MarketingPeriodSummary;
   rolling7DaySummary: MarketingPeriodSummary;
@@ -339,6 +348,7 @@ export async function executeDailyAnalysis(
     analysisDate: ranges.yesterday.endDate,
     timeZone: ranges.timeZone,
     dataSourcesUsed: collected.dataSourcesUsed,
+    dataSourceStatus: collected.dataSourceStatus,
     yesterdaySummary: collected.yesterdaySummary,
     previousDaySummary: collected.previousDaySummary,
     yesterdayComparison,

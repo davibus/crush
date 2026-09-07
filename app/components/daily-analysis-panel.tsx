@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import type {
   DailyAnalysisResult,
+  DailyAnalysisSourceStatus,
   MarketingPeriodSummary,
   MaterialChange,
 } from "@/lib/daily-analysis";
@@ -12,6 +13,17 @@ type DailyAnalysisResponse = DailyAnalysisResult & { error?: string };
 
 function sourceLabel(source: DailyAnalysisResult["dataSourcesUsed"][number]) {
   return source === "google_ads" ? "Google Ads" : "GA4";
+}
+
+function fallbackSourceStatus(
+  sources: DailyAnalysisResult["dataSourcesUsed"],
+): DailyAnalysisSourceStatus[] {
+  return sources.map((source) => ({
+    source,
+    status: "live",
+    included: true,
+    detail: "Live data was included.",
+  }));
 }
 
 function formatNumber(value: number | null | undefined, options?: Intl.NumberFormatOptions) {
@@ -80,14 +92,16 @@ function changeValue(change: MaterialChange) {
   return `${sign}${change.percentageChange.toFixed(1)}%`;
 }
 
-export default function DailyAnalysisPanel() {
+export default function DailyAnalysisPanel({ clientId }: { clientId: string }) {
   const [analysis, setAnalysis] = useState<DailyAnalysisResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const sourceStatuses = analysis?.dataSourceStatus ??
+    fallbackSourceStatus(analysis?.dataSourcesUsed ?? []);
 
   useEffect(() => {
     let active = true;
-    fetch("/api/analysis/daily")
+    fetch(`/api/analysis/daily?clientId=${encodeURIComponent(clientId)}`)
       .then(async (response) => {
         const result = (await response.json()) as DailyAnalysisResponse;
         if (!response.ok) {
@@ -106,13 +120,16 @@ export default function DailyAnalysisPanel() {
         if (active) setIsLoading(false);
       });
     return () => { active = false; };
-  }, []);
+  }, [clientId]);
 
   async function runAnalysis() {
     setIsLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/analysis/daily", { method: "POST" });
+      const response = await fetch(
+        `/api/analysis/daily?clientId=${encodeURIComponent(clientId)}`,
+        { method: "POST" },
+      );
       const result = (await response.json()) as DailyAnalysisResponse;
       if (!response.ok) throw new Error(result.error ?? "Daily Analysis could not complete.");
       setAnalysis(result);
@@ -129,7 +146,7 @@ export default function DailyAnalysisPanel() {
         <div>
           <h2 className="text-lg font-semibold text-zinc-950" id="daily-analysis-heading">Daily Analysis</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Completed-day Google Ads and GA4 comparisons with grounded findings
+            Completed-day, source-aware Google Ads and GA4 analysis with grounded findings
           </p>
         </div>
         <button
@@ -143,7 +160,7 @@ export default function DailyAnalysisPanel() {
         </button>
       </div>
 
-      <span className="sr-only" id="daily-analysis-description">Runs analysis using completed periods from configured live data sources.</span>
+      <span className="sr-only" id="daily-analysis-description">Runs analysis using completed periods from configured data sources.</span>
 
       {isLoading && !analysis ? (
         <div aria-live="polite" className="mt-5 grid gap-3" role="status">
@@ -159,7 +176,7 @@ export default function DailyAnalysisPanel() {
       {!analysis && !isLoading ? (
         <div className="mt-5 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center">
           <h3 className="text-sm font-semibold text-zinc-800">No saved daily analysis yet</h3>
-          <p className="mx-auto mt-1 max-w-xl text-sm leading-6 text-zinc-500">Run the analysis to collect completed periods from configured live sources. If no live source is connected, the request will explain what needs to be configured.</p>
+          <p className="mx-auto mt-1 max-w-xl text-sm leading-6 text-zinc-500">Run the analysis to collect completed periods from configured sources. Source labels explain which data is live, sample, or unavailable.</p>
         </div>
       ) : null}
 
@@ -169,8 +186,14 @@ export default function DailyAnalysisPanel() {
             <span>Analyzed {analysis.analysisDate}</span>
             <span aria-hidden="true">·</span>
             <span>{analysis.timeZone}</span>
-            {analysis.dataSourcesUsed.map((source) => (
-              <span className="rounded-full bg-zinc-100 px-2.5 py-1 font-medium" key={source}>{sourceLabel(source)}</span>
+            {sourceStatuses.map((source) => (
+              <span
+                className={`rounded-full px-2.5 py-1 font-medium ${source.included ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}
+                key={source.source}
+                title={source.detail}
+              >
+                {sourceLabel(source.source)} · {source.status} · {source.included ? "included" : "not included"}
+              </span>
             ))}
           </div>
 
