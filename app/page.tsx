@@ -12,6 +12,7 @@ import KpiOverview from "@/app/components/kpi-overview";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
 import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
+import PdfReportDownload from "@/app/components/pdf-report-download";
 import WeeklyReportPanel from "@/app/components/weekly-report-panel";
 import { runAccountAudit } from "@/lib/account-audit";
 import type { ClientSummary, ClientWorkspace } from "@/lib/clients";
@@ -254,6 +255,7 @@ export async function ClientDashboard({
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="reporting">
           <SectionIntro description="Create a repeatable, evidence-linked weekly narrative for stakeholders without rebuilding the analysis by hand." eyebrow="Reporting" title="Package performance for the week" />
+          <PdfReportDownload clientId={client.id} />
           <WeeklyReportPanel clientId={client.id} />
         </section>
 

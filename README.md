@@ -126,6 +126,18 @@ See [docs/weekly-report.md](docs/weekly-report.md) for reporting-period rules,
 data-source statuses, grounding guarantees, persistence, scheduling, and
 verification.
 
+## PDF marketing reports
+
+Each authorized client workspace includes an on-demand **Download PDF report**
+action in the Reporting section. The client-ready export reuses current Google
+Ads KPIs, deterministic account scoring and audit findings, the latest saved
+Daily Analysis and Weekly Marketing Report, and GA4 context when available.
+Missing optional sources and undefined zero-denominator ratios are labeled
+without blocking the export. The tenant-authorized server route generates the
+PDF in memory, returns it with private no-store headers, and does not persist it.
+See [docs/pdf-reports.md](docs/pdf-reports.md) for contents, security behavior,
+download steps, demo behavior, limitations, and verification.
+
 ## Specialist marketing agents
 
 Ask Your Marketing Data supports Auto routing plus PPC, Analytics, CRO, SEO, and
@@ -159,6 +171,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [Portfolio and resume entry](docs/portfolio-entry.md)
 - [Daily Analysis behavior](docs/daily-analysis.md)
 - [Weekly Marketing Report behavior](docs/weekly-report.md)
+- [PDF marketing reports](docs/pdf-reports.md)
 - [Specialist agent architecture](docs/specialist-agents.md)
 - [GA4 setup](docs/ga4-setup.md)
 - [Account score methodology](docs/account-score.md)
