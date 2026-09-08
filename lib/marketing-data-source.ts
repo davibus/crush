@@ -24,6 +24,13 @@ import {
   type GoogleAdsApiConfig,
 } from "./google-ads-api.ts";
 import type { GA4Data, GA4DataState } from "./ga4.ts";
+import {
+  fetchSearchConsoleData,
+  hasAnySearchConsoleConfig,
+  readSearchConsoleApiConfig,
+  SearchConsoleApiError,
+} from "./search-console-api.ts";
+import type { SearchConsoleData, SearchConsoleDataState } from "./search-console.ts";
 import type {
   GoogleAdsConversion,
   GoogleAdsDailyMetric,
@@ -54,6 +61,7 @@ export type MarketingDataSet = {
   conversions: GoogleAdsConversion[];
   landingPages?: GoogleAdsLandingPage[];
   ga4: GA4DataState;
+  searchConsole: SearchConsoleDataState;
 };
 
 const liveCache = new Map<
@@ -61,6 +69,7 @@ const liveCache = new Map<
   { expiresAt: number; data: Awaited<ReturnType<typeof fetchGoogleAdsData>> }
 >();
 const ga4Cache = new Map<string, { expiresAt: number; data: GA4Data }>();
+const searchConsoleCache = new Map<string, { expiresAt: number; data: SearchConsoleData }>();
 
 function sampleData(requestedSource: MarketingDataSource, warning?: string): MarketingDataSet {
   return {
@@ -76,7 +85,46 @@ function sampleData(requestedSource: MarketingDataSource, warning?: string): Mar
     searchTerms: searchTermData.searchTerms as GoogleAdsSearchTerm[],
     conversions: conversionData.conversions as GoogleAdsConversion[],
     ga4: { status: "unconfigured" },
+    searchConsole: { status: "unconfigured" },
   };
+}
+
+export async function loadSearchConsoleDataForWorkspace(
+  client: ClientWorkspace,
+  environment: NodeJS.ProcessEnv,
+  fetcher: typeof fetchSearchConsoleData = fetchSearchConsoleData,
+): Promise<SearchConsoleDataState> {
+  if (!hasAnySearchConsoleConfig(environment)) return { status: "unconfigured" };
+
+  try {
+    const config = readSearchConsoleApiConfig(environment);
+    const cacheKey = getClientCacheKey(client.id, "search-console", [
+      config.propertyUrl,
+      config.clientEmail,
+      config.startDate,
+      config.endDate,
+      String(config.rowLimit),
+    ]);
+    const cached = searchConsoleCache.get(cacheKey);
+    const data = cached && cached.expiresAt > Date.now()
+      ? cached.data
+      : await fetcher(config);
+    if (!cached || cached.expiresAt <= Date.now()) {
+      searchConsoleCache.set(cacheKey, { data, expiresAt: Date.now() + LIVE_CACHE_TTL_MS });
+    }
+    const hasRows = data.reports.some((report) => report.rows.length > 0);
+    return { status: hasRows ? "available" : "empty", data };
+  } catch (error) {
+    console.error("Search Console data load failed; continuing without Search Console context.", {
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      code: error instanceof SearchConsoleApiError ? error.code : undefined,
+      message: error instanceof Error ? error.message : "Unknown failure",
+    });
+    return {
+      status: "error",
+      message: "Google Search Console data could not be loaded. Google Ads and GA4 remain available independently; check the server configuration and logs.",
+    };
+  }
 }
 
 function requestedSource(environment: NodeJS.ProcessEnv): MarketingDataSource {
@@ -144,8 +192,11 @@ export async function getMarketingData(
 ): Promise<MarketingDataSet> {
   const environment = createClientEnvironment(client, baseEnvironment);
   const selected = requestedSource(environment);
-  const ga4 = await ga4Data(client, environment);
-  if (selected === "sample") return { ...sampleData(selected), ga4 };
+  const [ga4, searchConsole] = await Promise.all([
+    ga4Data(client, environment),
+    loadSearchConsoleDataForWorkspace(client, environment),
+  ]);
+  if (selected === "sample") return { ...sampleData(selected), ga4, searchConsole };
 
   try {
     const config = readGoogleAdsApiConfig(environment);
@@ -163,6 +214,7 @@ export async function getMarketingData(
       searchTerms: data.searchTerms,
       conversions: data.conversions,
       ga4,
+      searchConsole,
     };
   } catch (error) {
     const diagnostic = error instanceof GoogleAdsApiError
@@ -184,6 +236,7 @@ export async function getMarketingData(
         "Live Google Ads data could not be loaded. Crush is showing the sample dataset instead; check the server configuration and logs.",
       ),
       ga4,
+      searchConsole,
     };
   }
 }

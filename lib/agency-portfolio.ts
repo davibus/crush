@@ -38,6 +38,7 @@ export type AgencyWorkspaceSummary = {
   };
   integrations: {
     ga4: "connected" | "not_connected" | "connection_issue" | "unavailable";
+    searchConsole: "connected" | "no_rows" | "not_connected" | "connection_issue" | "unavailable";
   };
   account: {
     currency: string | null;
@@ -159,6 +160,18 @@ function ga4Projection(
   return "not_connected";
 }
 
+function searchConsoleProjection(
+  data: MarketingDataSet | null,
+): AgencyWorkspaceSummary["integrations"]["searchConsole"] {
+  if (!data) return "unavailable";
+  // Compatibility for stored/test projections produced before Search Console existed.
+  if (!data.searchConsole) return "not_connected";
+  if (data.searchConsole.status === "available") return "connected";
+  if (data.searchConsole.status === "empty") return "no_rows";
+  if (data.searchConsole.status === "error") return "connection_issue";
+  return "not_connected";
+}
+
 async function settledValue<T>(promise: Promise<T>): Promise<{ value: T | null; failed: boolean }> {
   try {
     return { value: await promise, failed: false };
@@ -213,7 +226,10 @@ async function summarizeWorkspace(
     dataSource: marketing.failed
       ? { status: "unavailable", label: "Data unavailable", reportingWindow: null }
       : source,
-    integrations: { ga4: ga4Projection(data) },
+    integrations: {
+      ga4: ga4Projection(data),
+      searchConsole: searchConsoleProjection(data),
+    },
     account: {
       currency: data?.campaignData.account.currency ?? null,
       score,

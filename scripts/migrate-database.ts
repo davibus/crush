@@ -1,19 +1,21 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 
 import { getDatabasePool } from "../lib/database.ts";
 
 loadEnvConfig(process.cwd());
-const migration = await readFile(
-  path.join(process.cwd(), "migrations", "001_authenticated_tenants.sql"),
-  "utf8",
-);
+const migrationDirectory = path.join(process.cwd(), "migrations");
+const migrationFiles = (await readdir(migrationDirectory))
+  .filter((file) => /^\d+_.*\.sql$/.test(file))
+  .sort();
 const pool = getDatabasePool();
 
 try {
-  await pool.query(migration);
-  console.log("Database migration completed.");
+  for (const file of migrationFiles) {
+    await pool.query(await readFile(path.join(migrationDirectory, file), "utf8"));
+  }
+  console.log(`Database migrations completed (${migrationFiles.length}).`);
 } finally {
   await pool.end();
 }

@@ -89,6 +89,7 @@ function marketingData(workspace: Workspace): MarketingDataSet {
     conversions: [],
     landingPages: [],
     ga4: { status: "unconfigured" },
+    searchConsole: { status: "unconfigured" },
   };
 }
 

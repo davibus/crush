@@ -42,11 +42,11 @@ The selector receives only `{ id, name, status }` for the current user's members
 
 ## Integration and tenant propagation
 
-Google Ads customer/login-customer IDs and GA4 property IDs are safe server-side routing configuration in `workspace_integrations`. `secret_ref` is reserved for a future environment/managed-secret resolver. Raw Google Ads OAuth credentials, developer tokens, GA4 service-account credentials, OpenAI keys, Blob tokens, Auth.js secrets, and database credentials stay in server-only environment variables. They must never use a `NEXT_PUBLIC_` prefix.
+Google Ads customer/login-customer IDs, GA4 property IDs, and Search Console property URLs are safe server-side routing configuration in `workspace_integrations`. Search Console uses the `search_console` provider row. `secret_ref` is reserved for a future environment/managed-secret resolver. Raw Google Ads OAuth credentials, developer tokens, GA4/Search Console service-account credentials, OpenAI keys, Blob tokens, Auth.js secrets, and database credentials stay in server-only environment variables. They must never use a `NEXT_PUBLIC_` prefix.
 
-The existing adapters remain read-only. `createClientEnvironment` derives the adapter environment on the server, and no Google Ads mutation capability is enabled.
+The adapters remain read-only. `createClientEnvironment` derives each adapter environment on the server. Search Console requests only `https://www.googleapis.com/auth/webmasters.readonly`; no Google Ads or Search Console mutation capability is enabled.
 
-The repository-returned workspace ID continues through Google Ads, GA4, AI insights, specialist chat, audits, daily analysis, weekly reports, and cron runners. Process-local Google Ads and GA4 caches include the workspace ID even when upstream identifiers match. File and private-Blob persistence remains:
+The repository-returned workspace ID continues through Google Ads, GA4, Search Console status/context, AI insights, specialist chat, audits, daily analysis, weekly reports, and cron runners. Process-local Google Ads, GA4, and Search Console caches include the workspace ID even when upstream identifiers match. Search Console remains separate from specialist workflows in this issue. File and private-Blob persistence remains:
 
 ```text
 clients/{clientId}/daily-analysis/{YYYY-MM-DD}.json
@@ -62,7 +62,7 @@ Workspace IDs are validated before they become cache or storage path segments.
 3. Create a GitHub OAuth app and set `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`. Use `/api/auth/callback/github` on the deployed origin as the callback URL.
 4. Run `npm.cmd run db:migrate`.
 5. Sign in once so Auth.js creates the user, then grant membership with `npm.cmd run db:grant -- user@example.com demo`.
-6. Configure the existing server-only Google Ads, GA4, OpenAI, Blob, and cron variables as needed.
+6. Configure the existing server-only Google Ads, GA4, Search Console, OpenAI, Blob, and cron variables as needed. See [Search Console setup](search-console-setup.md).
 
 An authenticated user with no memberships sees a neutral empty state on the agency dashboard. Creating invitations or an admin membership UI is intentionally deferred.
 

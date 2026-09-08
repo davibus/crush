@@ -48,6 +48,7 @@ export function createClientEnvironment(
   environment: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const hasGa4Property = Boolean(client.ga4PropertyId);
+  const hasSearchConsoleProperty = Boolean(client.searchConsolePropertyUrl);
   return {
     ...environment,
     GOOGLE_ADS_DATA_SOURCE: client.dataSource,
@@ -56,5 +57,12 @@ export function createClientEnvironment(
     GA4_PROPERTY_ID: client.ga4PropertyId,
     GA4_CLIENT_EMAIL: hasGa4Property ? environment.GA4_CLIENT_EMAIL : undefined,
     GA4_PRIVATE_KEY: hasGa4Property ? environment.GA4_PRIVATE_KEY : undefined,
+    SEARCH_CONSOLE_PROPERTY_URL: client.searchConsolePropertyUrl,
+    SEARCH_CONSOLE_CLIENT_EMAIL: hasSearchConsoleProperty
+      ? environment.SEARCH_CONSOLE_CLIENT_EMAIL
+      : undefined,
+    SEARCH_CONSOLE_PRIVATE_KEY: hasSearchConsoleProperty
+      ? environment.SEARCH_CONSOLE_PRIVATE_KEY
+      : undefined,
   };
 }

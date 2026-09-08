@@ -16,6 +16,7 @@ export type Workspace = {
   googleAdsCustomerId?: string;
   googleAdsLoginCustomerId?: string;
   ga4PropertyId?: string;
+  searchConsolePropertyUrl?: string;
   integrationSecretRef?: string;
 };
 
@@ -36,6 +37,7 @@ type WorkspaceRow = {
   google_ads_customer_id: string | null;
   google_ads_login_customer_id: string | null;
   ga4_property_id: string | null;
+  search_console_property_url: string | null;
   secret_ref: string | null;
 };
 
@@ -47,7 +49,8 @@ const WORKSPACE_COLUMNS = `
   gads.external_account_id AS google_ads_customer_id,
   gads.config->>'loginCustomerId' AS google_ads_login_customer_id,
   ga4.external_account_id AS ga4_property_id,
-  COALESCE(gads.secret_ref, ga4.secret_ref) AS secret_ref
+  search_console.external_account_id AS search_console_property_url,
+  COALESCE(gads.secret_ref, ga4.secret_ref, search_console.secret_ref) AS secret_ref
 `;
 
 function mapWorkspace(row: WorkspaceRow): Workspace {
@@ -61,6 +64,9 @@ function mapWorkspace(row: WorkspaceRow): Workspace {
       ? { googleAdsLoginCustomerId: row.google_ads_login_customer_id }
       : {}),
     ...(row.ga4_property_id ? { ga4PropertyId: row.ga4_property_id } : {}),
+    ...(row.search_console_property_url
+      ? { searchConsolePropertyUrl: row.search_console_property_url }
+      : {}),
     ...(row.secret_ref ? { integrationSecretRef: row.secret_ref } : {}),
   };
 }
@@ -80,6 +86,8 @@ export class PostgresTenantRepository implements TenantRepository {
         ON gads.workspace_id = w.id AND gads.provider = 'google_ads'
       LEFT JOIN workspace_integrations ga4
         ON ga4.workspace_id = w.id AND ga4.provider = 'ga4'
+      LEFT JOIN workspace_integrations search_console
+        ON search_console.workspace_id = w.id AND search_console.provider = 'search_console'
       WHERE w.id = $1
     `, [workspaceId]);
     return result.rows[0] ? mapWorkspace(result.rows[0]) : null;
@@ -95,6 +103,8 @@ export class PostgresTenantRepository implements TenantRepository {
         ON gads.workspace_id = w.id AND gads.provider = 'google_ads'
       LEFT JOIN workspace_integrations ga4
         ON ga4.workspace_id = w.id AND ga4.provider = 'ga4'
+      LEFT JOIN workspace_integrations search_console
+        ON search_console.workspace_id = w.id AND search_console.provider = 'search_console'
       WHERE membership.user_id = $1 AND w.id = $2
     `, [userId, workspaceId]);
     return result.rows[0] ? mapWorkspace(result.rows[0]) : null;
@@ -108,6 +118,8 @@ export class PostgresTenantRepository implements TenantRepository {
         ON gads.workspace_id = w.id AND gads.provider = 'google_ads'
       LEFT JOIN workspace_integrations ga4
         ON ga4.workspace_id = w.id AND ga4.provider = 'ga4'
+      LEFT JOIN workspace_integrations search_console
+        ON search_console.workspace_id = w.id AND search_console.provider = 'search_console'
       WHERE w.status = 'active'
       ORDER BY w.id
     `);
@@ -124,6 +136,8 @@ export class PostgresTenantRepository implements TenantRepository {
         ON gads.workspace_id = w.id AND gads.provider = 'google_ads'
       LEFT JOIN workspace_integrations ga4
         ON ga4.workspace_id = w.id AND ga4.provider = 'ga4'
+      LEFT JOIN workspace_integrations search_console
+        ON search_console.workspace_id = w.id AND search_console.provider = 'search_console'
       WHERE membership.user_id = $1
       ORDER BY w.name, w.id
     `, [userId]);
@@ -147,16 +161,18 @@ function configuredFixture(
   const googleAdsCustomerId = environmentValue(environment, `${prefix}_GOOGLE_ADS_CUSTOMER_ID`);
   const googleAdsLoginCustomerId = environmentValue(environment, `${prefix}_GOOGLE_ADS_LOGIN_CUSTOMER_ID`);
   const ga4PropertyId = environmentValue(environment, `${prefix}_GA4_PROPERTY_ID`);
+  const searchConsolePropertyUrl = environmentValue(environment, `${prefix}_SEARCH_CONSOLE_PROPERTY_URL`);
   return {
     id,
     name: environmentValue(environment, `${prefix}_NAME`) ?? fallbackName,
-    status: dataSource === "sample" || googleAdsCustomerId || ga4PropertyId
+    status: dataSource === "sample" || googleAdsCustomerId || ga4PropertyId || searchConsolePropertyUrl
       ? "active"
       : "configuration_required",
     dataSource,
     ...(googleAdsCustomerId ? { googleAdsCustomerId } : {}),
     ...(googleAdsLoginCustomerId ? { googleAdsLoginCustomerId } : {}),
     ...(ga4PropertyId ? { ga4PropertyId } : {}),
+    ...(searchConsolePropertyUrl ? { searchConsolePropertyUrl } : {}),
   };
 }
 
@@ -171,6 +187,8 @@ export function getDevelopmentWorkspaces(
     environmentValue(environment, "GOOGLE_ADS_LOGIN_CUSTOMER_ID");
   const ga4PropertyId = environmentValue(environment, "DEMO_GA4_PROPERTY_ID") ??
     environmentValue(environment, "GA4_PROPERTY_ID");
+  const searchConsolePropertyUrl = environmentValue(environment, "DEMO_SEARCH_CONSOLE_PROPERTY_URL") ??
+    environmentValue(environment, "SEARCH_CONSOLE_PROPERTY_URL");
   return [
     {
       id: "demo",
@@ -180,6 +198,7 @@ export function getDevelopmentWorkspaces(
       ...(googleAdsCustomerId ? { googleAdsCustomerId } : {}),
       ...(googleAdsLoginCustomerId ? { googleAdsLoginCustomerId } : {}),
       ...(ga4PropertyId ? { ga4PropertyId } : {}),
+      ...(searchConsolePropertyUrl ? { searchConsolePropertyUrl } : {}),
     },
     configuredFixture("client-a", "CLIENT_A", "Client A Workspace", environment),
     configuredFixture("client-b", "CLIENT_B", "Client B Workspace", environment),

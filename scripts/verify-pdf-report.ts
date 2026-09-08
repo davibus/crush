@@ -74,6 +74,7 @@ function marketingData(
     conversions: [],
     landingPages: [],
     ga4,
+    searchConsole: { status: "unconfigured" },
   };
 }
 

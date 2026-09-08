@@ -31,6 +31,7 @@ const clientA: Workspace = {
   googleAdsCustomerId: "123-456-7890",
   googleAdsLoginCustomerId: "999-999-9999",
   ga4PropertyId: "123456789",
+  searchConsolePropertyUrl: "sc-domain:client-a.example",
   integrationSecretRef: "env:CLIENT_A_INTEGRATIONS",
 };
 const repository = new DevelopmentTenantRepository(
@@ -107,6 +108,7 @@ for (const privateValue of [
   clientA.googleAdsCustomerId,
   clientA.googleAdsLoginCustomerId,
   clientA.ga4PropertyId,
+  clientA.searchConsolePropertyUrl,
   clientA.integrationSecretRef,
 ]) {
   assert.equal(selectorPayload.includes(privateValue!), false);
@@ -121,6 +123,11 @@ assert.notEqual(
   getWorkspaceCacheKey("demo", "ga4", ["same-property"]),
   getWorkspaceCacheKey("client-a", "ga4", ["same-property"]),
   "GA4 cache keys must be tenant scoped.",
+);
+assert.notEqual(
+  getWorkspaceCacheKey("demo", "search-console", ["same-property"]),
+  getWorkspaceCacheKey("client-a", "search-console", ["same-property"]),
+  "Search Console cache keys must be tenant scoped.",
 );
 assert.equal(
   getDailyAnalysisStorageKey("client-a", "2026-09-06"),
@@ -150,10 +157,14 @@ const secretEnvironment = {
   GOOGLE_ADS_REFRESH_TOKEN: "refresh-token-sentinel",
   GOOGLE_ADS_DEVELOPER_TOKEN: "developer-token-sentinel",
   GA4_PRIVATE_KEY: "private-key-sentinel",
+  SEARCH_CONSOLE_CLIENT_EMAIL: "search-console@example.iam.gserviceaccount.com",
+  SEARCH_CONSOLE_PRIVATE_KEY: "search-console-private-key-sentinel",
 } as NodeJS.ProcessEnv;
 const derivedEnvironment = createClientEnvironment(clientA, secretEnvironment);
 assert.equal(derivedEnvironment.GOOGLE_ADS_CLIENT_SECRET, "google-secret-sentinel");
 assert.equal(derivedEnvironment.GA4_PRIVATE_KEY, "private-key-sentinel");
+assert.equal(derivedEnvironment.SEARCH_CONSOLE_PROPERTY_URL, clientA.searchConsolePropertyUrl);
+assert.equal(derivedEnvironment.SEARCH_CONSOLE_PRIVATE_KEY, "search-console-private-key-sentinel");
 assert.equal(selectorPayload.includes("secret-sentinel"), false);
 
 assert.equal(demo.dataSource, "sample");

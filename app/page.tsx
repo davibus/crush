@@ -13,6 +13,7 @@ import MarketingDataChat from "@/app/components/marketing-data-chat";
 import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
 import PdfReportDownload from "@/app/components/pdf-report-download";
+import SearchConsoleContextPanel from "@/app/components/search-console-context-panel";
 import WeeklyReportPanel from "@/app/components/weekly-report-panel";
 import { runAccountAudit } from "@/lib/account-audit";
 import type { ClientSummary, ClientWorkspace } from "@/lib/clients";
@@ -31,6 +32,7 @@ import {
 } from "@/lib/google-ads";
 import { getMarketingData } from "@/lib/marketing-data-source";
 import { buildPaidMediaAnalyticsContext } from "@/lib/paid-media-context";
+import { projectSearchConsoleStatus } from "@/lib/search-console";
 import { requireAuthenticatedPageUser } from "@/lib/workspace-access";
 
 const navigation = [
@@ -87,6 +89,13 @@ export async function ClientDashboard({
   const ga4Label = marketingData.ga4.status === "available"
     ? "Connected"
     : marketingData.ga4.status === "error" ? "Connection issue" : "Not connected";
+  const searchConsoleStatus = projectSearchConsoleStatus(marketingData.searchConsole);
+  const searchConsoleLabel = {
+    available: "Connected",
+    empty: "No rows",
+    error: "Connection issue",
+    unconfigured: "Not connected",
+  }[searchConsoleStatus.status];
 
   return (
     <main className="min-h-screen overflow-x-clip bg-slate-50 text-slate-900">
@@ -138,10 +147,16 @@ export async function ClientDashboard({
                 Crush combines paid-media performance and GA4 context with evidence-grounded AI analysis, automated audits, reporting, and conversational exploration—all in one operating view.
               </p>
             </div>
-            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-700 bg-slate-700 shadow-2xl shadow-black/20">
+            <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-slate-700 bg-slate-700 shadow-2xl shadow-black/20">
               <div className="bg-slate-900 p-4">
                 <dt className="text-xs text-slate-400">Account</dt>
                 <dd className="mt-1 break-words text-sm font-semibold text-white">{data.account.name}</dd>
+              </div>
+              <div className="bg-slate-900 p-4">
+                <dt className="text-xs text-slate-400">Search Console</dt>
+                <dd className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-white">
+                  <StatusDot tone={searchConsoleStatus.status === "available" ? "green" : "amber"} /> {searchConsoleLabel}
+                </dd>
               </div>
               <div className="bg-slate-900 p-4">
                 <dt className="text-xs text-slate-400">GA4</dt>
@@ -204,6 +219,7 @@ export async function ClientDashboard({
             <KpiOverview currency={data.account.currency} metrics={hasUsableDashboardData(data.campaigns.map((campaign) => campaign.metrics)) ? totals : null} />
           </div>
           <GA4ContextPanel ga4={marketingData.ga4} paidMedia={paidMediaContext} />
+          <SearchConsoleContextPanel searchConsole={searchConsoleStatus} />
         </section>
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="performance">

@@ -9,7 +9,7 @@ export function requireWorkspaceId(workspaceId: string): string {
 
 export function getWorkspaceCacheKey(
   workspaceId: string,
-  source: "google-ads" | "ga4",
+  source: "google-ads" | "ga4" | "search-console",
   identity: readonly string[],
 ): string {
   return ["workspace", requireWorkspaceId(workspaceId), source, ...identity].join(":");

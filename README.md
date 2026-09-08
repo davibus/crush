@@ -1,6 +1,6 @@
 # Crush — Version 2 foundation
 
-**Crush Version 2 begins with an explicit multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance and optional GA4 context into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
+**Crush Version 2 builds on an authenticated multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance, optional GA4 context, and workspace-scoped Google Search Console visibility into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
 
 The current V2 architecture provides authenticated workspaces at `/clients/[clientId]`, durable PostgreSQL users/memberships, client-scoped caches and report storage, and an authorized-only workspace selector. The local demo remains available through an explicitly development-only identity and fixture repository. It intentionally does not include billing, invitations, tenant-management UI, or account-writing features. See [the multi-client architecture guide](docs/multi-client.md).
 
@@ -29,7 +29,7 @@ Crush explores a deterministic-first answer: application code owns calculations,
 - OpenAI structured-output recommendations checked against precomputed candidates
 - grounded Ask Your Marketing Data calculations and bounded conversation history
 - typed PPC, Analytics, CRO, SEO, and Marketing Strategist workflows
-- read-only live Google Ads and GA4 adapters with server-only credentials
+- read-only live Google Ads, GA4, and Google Search Console adapters with server-only credentials
 - local JSON or private Vercel Blob persistence plus secret-protected cron routes
 
 ## Screenshot and demo
@@ -86,6 +86,20 @@ variables empty to run without it, or follow the exact service-account and GA4
 property instructions in [docs/ga4-setup.md](docs/ga4-setup.md). Invalid or
 incomplete GA4 configuration is reported in the GA4 panel while all existing
 paid-media features continue to load.
+
+## Optional Google Search Console context
+
+Crush can load read-only Search Analytics reports for query, page, country, and
+device dimensions. Each report preserves Google Search Console clicks,
+impressions, CTR, and average position as Search Console metrics; they are not
+renamed, attributed, or merged into GA4 sessions, users, or key events. The
+workspace dashboard and agency portfolio expose a minimal connection/status
+view. The SEO specialist does not consume this source yet.
+
+Search Console is configured independently per workspace and failures do not
+block Google Ads or GA4. See [the Search Console setup guide](docs/search-console-setup.md)
+for Google API setup, the read-only OAuth scope, service-account access,
+reporting dates, tenant isolation, latency, and current limitations.
 
 ## Daily Analysis
 
@@ -174,6 +188,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [PDF marketing reports](docs/pdf-reports.md)
 - [Specialist agent architecture](docs/specialist-agents.md)
 - [GA4 setup](docs/ga4-setup.md)
+- [Google Search Console setup](docs/search-console-setup.md)
 - [Account score methodology](docs/account-score.md)
 
 ## Deployment note

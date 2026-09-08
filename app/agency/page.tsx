@@ -99,6 +99,7 @@ function WorkspaceCard({ workspace }: { workspace: AgencyWorkspaceSummary }) {
           <span className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700">{workspace.workspaceStatus === "active" ? "Active workspace" : "Workspace setup required"}</span>
           <span className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700">{workspace.dataSource.label}</span>
           <span className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700">GA4: {formatStatus(workspace.integrations.ga4)}</span>
+          <span className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700">Search Console: {formatStatus(workspace.integrations.searchConsole)}</span>
           {workspace.dataSource.reportingWindow ? (
             <span className="rounded-full bg-blue-50 px-3 py-1.5 font-medium text-blue-700">{workspace.dataSource.reportingWindow}</span>
           ) : null}
