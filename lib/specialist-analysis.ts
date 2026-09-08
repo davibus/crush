@@ -10,6 +10,8 @@ import {
   type MarketingChatResponse,
 } from "./marketing-data-chat.ts";
 import type { MarketingEvidence } from "./marketing-insights.ts";
+import type { SearchConsoleDataState, SearchConsoleRow } from "./search-console.ts";
+import type { SeoRankMovement, SeoRankTrackingState } from "./seo-rank-tracking.ts";
 import {
   getSpecialistAgent,
   routeSpecialistQuestion,
@@ -25,6 +27,8 @@ export type SpecialistMarketingContext = {
   analysis: PreparedCampaignPerformanceAnalysis;
   dailyMetrics: readonly GoogleAdsDailyMetric[];
   ga4: GA4DataState;
+  searchConsole: SearchConsoleDataState;
+  rankTracking: SeoRankTrackingState;
 };
 
 export type ExecuteSpecialistRequest = {
@@ -386,20 +390,155 @@ function sumGA4Metrics(rows: GA4Data["trafficSources"]): GA4Metrics {
   return { ...totals, engagementRate: totals.sessions > 0 ? (totals.engagedSessions / totals.sessions) * 100 : 0 };
 }
 
+function compactText(value: string | undefined, maximum = 70): string | undefined {
+  return value && value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value;
+}
+
+function rankMovementEvidence(movement: SeoRankMovement): MarketingEvidence[] {
+  const entity = movement.query
+    ? `query ${compactText(movement.query)}${movement.page ? `; page ${compactText(movement.page)}` : ""}`
+    : `page ${compactText(movement.page)}`;
+  const context = `Google Search Console evidence ${movement.evidenceId}; ${entity}; current ${movement.currentPeriod.startDate}–${movement.currentPeriod.endDate}; previous ${movement.previousPeriod.startDate}–${movement.previousPeriod.endDate}.`;
+  return [
+    { metric: "Current aggregated Search Console average position", value: movement.current.averagePosition, unit: "count", context },
+    { metric: "Previous aggregated Search Console average position", value: movement.previous.averagePosition, unit: "count", context },
+    { metric: "Search Console average-position change", value: movement.positionChange, unit: "count", context: `${context} Calculated as previous minus current; positive is improvement.` },
+    { metric: "Current Search Console impressions", value: movement.current.impressions, unit: "count", context },
+  ];
+}
+
+function selectRankMovements(
+  movements: readonly SeoRankMovement[],
+  question: string,
+): SeoRankMovement[] {
+  const asksPage = /\b(?:pages?|landing)\b/i.test(question);
+  const asksQuery = /\b(?:queries|query|keywords?)\b/i.test(question);
+  let selected = movements.filter((movement) =>
+    asksPage && asksQuery ? movement.dimension === "query_page"
+      : asksPage ? movement.dimension === "page"
+        : movement.dimension === "query",
+  );
+  if (/\b(?:declin|decreas|drop|fell|fall|lost|losing)\w*\b/i.test(question)) {
+    selected = selected.filter((movement) => movement.direction === "declined");
+  } else if (/\b(?:improv|increas|gain|rose|rise|winning)\w*\b/i.test(question)) {
+    selected = selected.filter((movement) => movement.direction === "improved");
+  } else if (/\bpage[ -]?one\b/i.test(question)) {
+    selected = selected.filter((movement) => movement.findings.includes("page_one_opportunity"));
+  } else if (/\btop(?: three| five| ranking| position)?\b/i.test(question)) {
+    selected = selected.filter((movement) => movement.findings.includes("top_ranking_opportunity"));
+  }
+  return selected.slice(0, 3);
+}
+
+function rankMovementDescription(movement: SeoRankMovement): string {
+  const entity = movement.query ? `Query “${compactText(movement.query, 100)}”` : `Page ${compactText(movement.page, 100)}`;
+  const page = movement.query && movement.page ? ` for ${compactText(movement.page, 100)}` : "";
+  return `${entity}${page} ${movement.direction === "stable" ? "was stable" : movement.direction} from ${movement.previous.averagePosition.toFixed(1)} to ${movement.current.averagePosition.toFixed(1)} in aggregated Search Console average position (${movement.positionChange > 0 ? "+" : ""}${movement.positionChange.toFixed(1)}; positive means improvement).`;
+}
+
+function searchConsoleCurrentEvidence(
+  row: SearchConsoleRow,
+  label: string,
+  context: string,
+): MarketingEvidence[] {
+  return [
+    { metric: "Aggregated Search Console average position", value: row.averagePosition, unit: "count", context: `${context} ${label}; not an exact live SERP rank.` },
+    { metric: "Search Console impressions", value: row.impressions, unit: "count", context: `${context} ${label}.` },
+    { metric: "Search Console clicks", value: row.clicks, unit: "count", context: `${context} ${label}.` },
+    { metric: "Search Console CTR", value: row.ctr * 100, unit: "percent", context: `${context} ${label}.` },
+  ];
+}
+
 function seoExecution(
   context: SpecialistMarketingContext,
   request: ExecuteSpecialistRequest,
 ): SpecialistExecution {
+  const rankLimitation = context.rankTracking.status === "available"
+    ? "No matching rank movement met the requested deterministic criteria."
+    : context.rankTracking.message;
   const hypothesis = {
     id: "seo-demand-or-visibility",
-    statement: "Hypothesis: an organic change could reflect search demand, search visibility, indexation, or site changes; Crush does not currently have evidence that distinguishes these causes.",
-    validationNeeded: "Connect Search Console and compare query, page, country, device, click, impression, CTR, and position data across equivalent periods; add crawl evidence if technical causes are suspected.",
+    statement: "Hypothesis: an organic change could reflect search demand, visibility, indexation, competitor, backlink, content, or site changes; the available performance data does not establish a cause.",
+    validationNeeded: "Investigate the affected query and page with appropriate crawl, indexation, content, backlink, or market evidence before assigning a cause or making a change.",
   };
+
+  if (context.rankTracking.status === "available") {
+    const selected = selectRankMovements(context.rankTracking.movements, request.question);
+    if (selected.length > 0) {
+      const evidence = uniqueEvidence(selected.flatMap(rankMovementEvidence));
+      const findings = selected.map((movement) => ({
+        title: movement.direction === "declined" ? "Search visibility decline" : movement.direction === "improved" ? "Search visibility improvement" : "Stable Search Console average position",
+        detail: rankMovementDescription(movement),
+        kind: "measured" as const,
+        evidence: rankMovementEvidence(movement),
+        sourceAgentIds: ["seo-analyst" as const],
+      }));
+      const attention = selected.find((movement) => movement.direction !== "stable" || movement.findings.some((finding) => finding.endsWith("opportunity")));
+      const recommendations = attention ? [{
+        action: attention.direction === "declined"
+          ? "Investigate this decline using page, crawl, indexation, content, backlink, and market evidence before assigning a cause."
+          : "Review the affected query and page for a measured, human-approved SEO opportunity, then monitor the same Search Console comparison.",
+        rationale: "The historical Search Console comparison identifies where attention is warranted but does not establish why the metric moved.",
+        priority: attention.direction === "declined" && attention.findings.includes("high_impression_decline") ? "high" as const : "medium" as const,
+        evidence: rankMovementEvidence(attention),
+        hypothesisId: null,
+        sourceAgentIds: ["seo-analyst" as const],
+      }] : [];
+      const summary = findings.map((finding) => finding.detail).join(" ");
+      const analysis = specialistAnalysisSchema.parse({
+        agent: specialistIdentity("seo-analyst"),
+        summary,
+        findings,
+        evidence,
+        recommendations,
+        limitations: ["Search Console average position is aggregated historical performance, not an exact live SERP rank.", "The comparison reports movement and opportunity only; it does not prove algorithm, competitor, backlink, technical, or content causes."],
+        confidence: 0.9,
+        hypotheses: [],
+      });
+      return { analysis, response: { status: "supported", answer: summary, supportingEvidence: evidence.slice(0, 12), limitations: analysis.limitations, referencedEntities: [] } };
+    }
+    return ga4UnavailableExecution(
+      "seo-analyst",
+      "No loaded, comparable Search Console row met the requested rank-movement criteria.",
+      ["The result is limited to valid matched rows within the configured Search Console row limit and deterministic volume thresholds."],
+    );
+  }
+
+  if (context.searchConsole.status === "available") {
+    const { data } = context.searchConsole;
+    const query = data.reports.find((report) => report.dimension === "query")?.rows
+      .filter((row) => row.query && row.impressions > 0 && row.averagePosition > 0)
+      .sort((left, right) => right.impressions - left.impressions)[0];
+    const page = data.reports.find((report) => report.dimension === "page")?.rows
+      .filter((row) => row.page && row.impressions > 0 && row.averagePosition > 0)
+      .sort((left, right) => right.impressions - left.impressions)[0];
+    const currentRows = [
+      ...(query ? [{ row: query, label: `query ${compactText(query.query, 100)}` }] : []),
+      ...(page ? [{ row: page, label: `page ${compactText(page.page, 100)}` }] : []),
+    ];
+    if (currentRows.length > 0) {
+      const periodContext = `Google Search Console, ${data.dateRange.startDate}–${data.dateRange.endDate}.`;
+      const evidence = currentRows.flatMap(({ row, label }) => searchConsoleCurrentEvidence(row, label, periodContext));
+      const answer = `Search Console current-period evidence is available for ${currentRows.map(({ label }) => label).join(" and ")}, but ${rankLimitation}`;
+      const analysis = specialistAnalysisSchema.parse({
+        agent: specialistIdentity("seo-analyst"),
+        summary: answer,
+        findings: currentRows.map(({ row, label }) => ({ title: `Current Search Console ${label}`, detail: `${label} recorded ${row.impressions.toLocaleString("en-US")} impressions, ${row.clicks.toLocaleString("en-US")} clicks, ${(row.ctr * 100).toFixed(2)}% CTR, and ${row.averagePosition.toFixed(1)} aggregated average position.`, kind: "measured" as const, evidence: searchConsoleCurrentEvidence(row, label, periodContext), sourceAgentIds: ["seo-analyst" as const] })),
+        evidence,
+        recommendations: [],
+        limitations: [rankLimitation, "No ranking movement is inferred without matching rows across two equivalent periods."],
+        confidence: 0.72,
+        hypotheses: [],
+      });
+      return { analysis, response: { status: "supported", answer, supportingEvidence: evidence, limitations: analysis.limitations, referencedEntities: [] } };
+    }
+  }
+
   if (context.ga4.status !== "available") {
     return ga4UnavailableExecution(
       "seo-analyst",
-      "Crush cannot measure organic traffic for this request because GA4 is unavailable, and it cannot diagnose SEO causes because Search Console and crawler data are not integrated.",
-      ["GA4 organic traffic is unavailable.", "Search Console and SEO crawler evidence are not available in Crush."],
+      "Crush cannot produce an SEO finding because Search Console comparison evidence and GA4 Organic Search context are unavailable.",
+      [rankLimitation, "GA4 Organic Search context and crawler evidence are unavailable."],
       hypothesis,
     );
   }
@@ -409,17 +548,17 @@ function seoExecution(
   if (organicRows.length === 0) {
     return ga4UnavailableExecution(
       "seo-analyst",
-      "The loaded GA4 context has no Organic Search traffic-source rows, and Crush has no Search Console or crawler data from which to make an SEO finding.",
-      ["No GA4 Organic Search rows are present.", "Search Console and SEO crawler evidence are not available in Crush."],
+      "The loaded GA4 context has no Organic Search traffic-source rows, and Search Console comparison evidence is unavailable.",
+      ["No GA4 Organic Search rows are present.", rankLimitation, "SEO crawler evidence is not available in Crush."],
       hypothesis,
     );
   }
   const metrics = sumGA4Metrics(organicRows);
   const evidence = ga4Evidence(metrics, `GA4 Organic Search rows, ${context.ga4.data.dateRange.startDate} through ${context.ga4.data.dateRange.endDate}.`);
   const asksForChange = /\b(?:declin|decreas|increas|chang|previous|prior|compar|why|fell|fall|rose|rise)\w*\b/i.test(request.question);
-  const limitation = "Only one organic GA4 period is loaded, and Search Console and crawler evidence are absent; traffic change and SEO causes cannot be established.";
+  const limitation = `Only one organic GA4 period is loaded; ${rankLimitation} SEO causes cannot be established without additional evidence.`;
   const answer = asksForChange
-    ? `The loaded period contains ${metrics.sessions.toLocaleString("en-US")} Organic Search sessions, but Crush cannot verify or explain a fall without a comparison period and Search Console evidence.`
+    ? `The loaded period contains ${metrics.sessions.toLocaleString("en-US")} Organic Search sessions, but Crush cannot verify or explain a fall without comparable source evidence.`
     : `The loaded period contains ${metrics.sessions.toLocaleString("en-US")} Organic Search sessions and ${metrics.keyEvents.toLocaleString("en-US")} key events.`;
   const analysis = specialistAnalysisSchema.parse({
     agent: specialistIdentity("seo-analyst"),

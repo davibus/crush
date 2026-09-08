@@ -1,9 +1,8 @@
 # Crush post-V1 future roadmap
 
-> **Status: future work.** Everything in this document is a proposed post-V1
-> capability. It is not a claim that the feature is currently available in
-> Crush, and the phases are sequencing guidance rather than release dates or
-> commitments.
+> **Status:** This roadmap includes both completed V2 foundation notes and future
+> proposals. Items explicitly marked as implemented are current capabilities;
+> all other items remain sequencing guidance rather than commitments.
 
 ## Version 1.0 baseline
 
@@ -121,7 +120,12 @@ alerts, but they do not publish content or modify an advertising account.
   model, source statuses, dated storage, and protected cron pattern; add delivery
   only after alert validity is established.
 
-### SEO rank tracking
+### Exact SERP rank tracking (future extension)
+
+> V2 now implements read-only historical query/page movement from aggregated
+> Google Search Console average-position data. That current capability uses two
+> equal reporting periods, deterministic thresholds, and evidence IDs; it does
+> not observe a live exact SERP position. The extension below remains future.
 
 - **What:** Track selected keyword rankings by search engine, locale, device, and
   date, then show movement and relevant landing pages.
@@ -375,8 +379,9 @@ user value, fit with V1, complexity, and the risk of crossing a trust boundary:
 2. **Add Microsoft Ads, then Meta Ads.** Microsoft paid-search semantics should
    exercise reuse of the current paid-media model before the larger hierarchy and
    attribution differences introduced by Meta.
-3. **Ship anomaly alerts and SEO rank tracking.** Alerts reuse current daily
-   materiality logic; rank history builds directly on the Search Console/SEO path.
+3. **Ship anomaly alerts and consider exact SERP rank tracking.** Alerts reuse
+   current daily materiality logic; any exact-rank extension must remain clearly
+   separated from the implemented Search Console average-position comparison.
 4. **Add landing-page analysis.** Reuse GA4 landing-page context, but establish
    safe page retrieval and untrusted-content handling before AI review.
 5. **Develop and backtest budget and conversion forecasts.** Release only when

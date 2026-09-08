@@ -44,7 +44,9 @@ secret references, private keys, and credentials.
 
 ## Reports and source status
 
-Crush requests separate query, page, country, and device reports. Every row
+Crush requests separate query, page, country, and device reports. Rank tracking
+also requests query+page rows and equivalent previous-period query, page, and
+query+page rows. Every row
 keeps the Search Console meanings of clicks, impressions, CTR (a ratio from 0 to
 1), and average position. Average position is an aggregate Search Console
 metric, not guaranteed literal rank. Search Console metrics are never converted
@@ -73,8 +75,11 @@ Search Analytics applies Google's aggregation, anonymization, retention, quota,
 and row-limit behavior. Crush does not paginate beyond the configured row limit,
 request search-appearance/date dimensions, inspect URLs, crawl pages, track
 literal ranks, analyze backlinks or competitors, or write to Search Console.
-The SEO specialist and automated daily/weekly/PDF analyses do not consume Search
-Console yet; this issue adds the isolated source adapter and status/context only.
+The SEO specialist consumes query/page and rank-movement evidence, while daily,
+weekly, and PDF analyses do not yet include Search Console. Rank tracking does
+not yet paginate, persist long-term snapshots, or segment comparisons by country
+or device. See [SEO rank tracking](seo-rank-tracking.md) for its exact
+methodology, thresholds, safeguards, and missing-data behavior.
 
 Run `npm.cmd run verify:search-console` for deterministic adapter, provenance,
 status, security, date, and workspace-isolation coverage.

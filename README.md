@@ -93,13 +93,18 @@ Crush can load read-only Search Analytics reports for query, page, country, and
 device dimensions. Each report preserves Google Search Console clicks,
 impressions, CTR, and average position as Search Console metrics; they are not
 renamed, attributed, or merged into GA4 sessions, users, or key events. The
-workspace dashboard and agency portfolio expose a minimal connection/status
-view. The SEO specialist does not consume this source yet.
+workspace dashboard compares query, page, and query+page average-position data
+with the immediately preceding equal-length period. The resulting rank-movement
+panel and SEO specialist use deterministic, evidence-linked gains, declines,
+visibility changes, and opportunity bands. Average position remains an
+aggregated historical Search Console metric, not an exact live SERP rank.
 
 Search Console is configured independently per workspace and failures do not
 block Google Ads or GA4. See [the Search Console setup guide](docs/search-console-setup.md)
 for Google API setup, the read-only OAuth scope, service-account access,
-reporting dates, tenant isolation, latency, and current limitations.
+reporting dates, tenant isolation, latency, and current limitations. See
+[SEO rank tracking](docs/seo-rank-tracking.md) for comparison methodology,
+thresholds, evidence behavior, specialist use, and missing-data rules.
 
 ## Daily Analysis
 
@@ -189,6 +194,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [Specialist agent architecture](docs/specialist-agents.md)
 - [GA4 setup](docs/ga4-setup.md)
 - [Google Search Console setup](docs/search-console-setup.md)
+- [SEO rank tracking](docs/seo-rank-tracking.md)
 - [Account score methodology](docs/account-score.md)
 
 ## Deployment note

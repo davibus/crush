@@ -29,6 +29,19 @@ export type SearchConsoleReport = {
   rows: SearchConsoleRow[];
 };
 
+export type SearchConsoleRankDimension = "query" | "page" | "query_page";
+
+export type SearchConsoleRankRow = SearchConsoleRow & {
+  dimension: SearchConsoleRankDimension;
+};
+
+export type SearchConsoleRankTrackingData = {
+  currentPeriod: { startDate: string; endDate: string };
+  previousPeriod: { startDate: string; endDate: string };
+  currentRows: SearchConsoleRankRow[];
+  previousRows: SearchConsoleRankRow[];
+};
+
 export type SearchConsoleData = {
   source: typeof SEARCH_CONSOLE_SOURCE;
   sourceLabel: typeof SEARCH_CONSOLE_SOURCE_LABEL;
@@ -36,6 +49,7 @@ export type SearchConsoleData = {
   dateRange: { startDate: string; endDate: string };
   fetchedAt: string;
   reports: SearchConsoleReport[];
+  rankTracking?: SearchConsoleRankTrackingData;
 };
 
 export type SearchConsoleDataState =

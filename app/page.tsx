@@ -14,6 +14,7 @@ import MarketingInsightsWorkspace from "@/app/components/marketing-insights-work
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
 import PdfReportDownload from "@/app/components/pdf-report-download";
 import SearchConsoleContextPanel from "@/app/components/search-console-context-panel";
+import SeoRankTrackingPanel from "@/app/components/seo-rank-tracking-panel";
 import WeeklyReportPanel from "@/app/components/weekly-report-panel";
 import { runAccountAudit } from "@/lib/account-audit";
 import type { ClientSummary, ClientWorkspace } from "@/lib/clients";
@@ -33,6 +34,7 @@ import {
 import { getMarketingData } from "@/lib/marketing-data-source";
 import { buildPaidMediaAnalyticsContext } from "@/lib/paid-media-context";
 import { projectSearchConsoleStatus } from "@/lib/search-console";
+import { buildSeoRankTracking } from "@/lib/seo-rank-tracking";
 import { requireAuthenticatedPageUser } from "@/lib/workspace-access";
 
 const navigation = [
@@ -90,6 +92,7 @@ export async function ClientDashboard({
     ? "Connected"
     : marketingData.ga4.status === "error" ? "Connection issue" : "Not connected";
   const searchConsoleStatus = projectSearchConsoleStatus(marketingData.searchConsole);
+  const rankTracking = buildSeoRankTracking(marketingData.searchConsole);
   const searchConsoleLabel = {
     available: "Connected",
     empty: "No rows",
@@ -220,6 +223,7 @@ export async function ClientDashboard({
           </div>
           <GA4ContextPanel ga4={marketingData.ga4} paidMedia={paidMediaContext} />
           <SearchConsoleContextPanel searchConsole={searchConsoleStatus} />
+          <SeoRankTrackingPanel rankTracking={rankTracking} />
         </section>
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="performance">

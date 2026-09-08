@@ -18,6 +18,8 @@ import {
   specialistAnalysisSchema,
   type SpecialistAgentId,
 } from "../lib/specialist-agents.ts";
+import { buildSeoRankTracking } from "../lib/seo-rank-tracking.ts";
+import { SEARCH_CONSOLE_SOURCE, SEARCH_CONSOLE_SOURCE_LABEL, type SearchConsoleDataState } from "../lib/search-console.ts";
 
 async function loadJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(new URL(path, import.meta.url), "utf8")) as T;
@@ -52,6 +54,8 @@ const context = {
   analysis,
   dailyMetrics: dailyData.dailyMetrics,
   ga4: { status: "unconfigured" as const },
+  searchConsole: { status: "unconfigured" as const },
+  rankTracking: buildSeoRankTracking({ status: "unconfigured" }),
 };
 
 const agents = listSpecialistAgents();
@@ -122,6 +126,55 @@ assert.equal(seo.response.status, "insufficient_data");
 assert.match(seo.response.limitations.join(" "), /Search Console/i);
 assert.match(seo.response.specialistAnalysis?.hypotheses[0]?.statement ?? "", /^Hypothesis:/);
 
+const rankSearchConsole: SearchConsoleDataState = {
+  status: "available",
+  data: {
+    source: SEARCH_CONSOLE_SOURCE,
+    sourceLabel: SEARCH_CONSOLE_SOURCE_LABEL,
+    propertyUrl: "sc-domain:example.com",
+    dateRange: { startDate: "2026-08-15", endDate: "2026-08-28" },
+    fetchedAt: "2026-09-01T00:00:00.000Z",
+    reports: [],
+    rankTracking: {
+      currentPeriod: { startDate: "2026-08-15", endDate: "2026-08-28" },
+      previousPeriod: { startDate: "2026-08-01", endDate: "2026-08-14" },
+      currentRows: [{ dimension: "query", query: "declining seo query", averagePosition: 9, impressions: 150, clicks: 8, ctr: 8 / 150 }],
+      previousRows: [{ dimension: "query", query: "declining seo query", averagePosition: 5, impressions: 220, clicks: 16, ctr: 16 / 220 }],
+    },
+  },
+};
+const rankedSeo = executeSpecialistWorkflow({
+  ...context,
+  searchConsole: rankSearchConsole,
+  rankTracking: buildSeoRankTracking(rankSearchConsole),
+}, { question: "Which queries declined in ranking?" });
+assert.equal(rankedSeo.response.status, "supported");
+assert.match(rankedSeo.response.answer, /9\.0/);
+assert.match(rankedSeo.response.limitations.join(" "), /not an exact live SERP rank/i);
+assert.ok(rankedSeo.response.supportingEvidence.every((item) => item.context.includes("Google Search Console")));
+assert.doesNotMatch(rankedSeo.response.answer, /algorithm update|competitor|backlink loss|technical SEO problem|content quality/i);
+
+const currentOnlySearchConsole: SearchConsoleDataState = {
+  status: "available",
+  data: {
+    ...rankSearchConsole.data,
+    reports: [
+      { dimension: "query", rows: [{ query: "current seo query", averagePosition: 8.2, impressions: 120, clicks: 12, ctr: 0.1 }] },
+      { dimension: "page", rows: [{ page: "https://example.com/current", averagePosition: 9.4, impressions: 180, clicks: 15, ctr: 15 / 180 }] },
+    ],
+    rankTracking: undefined,
+  },
+};
+const currentOnlySeo = executeSpecialistWorkflow({
+  ...context,
+  searchConsole: currentOnlySearchConsole,
+  rankTracking: buildSeoRankTracking(currentOnlySearchConsole),
+}, { question: "What does Search Console show for SEO?" });
+assert.equal(currentOnlySeo.response.status, "supported");
+assert.match(currentOnlySeo.response.answer, /current-period evidence/i);
+assert.match(currentOnlySeo.response.limitations.join(" "), /No ranking movement is inferred/i);
+assert.equal(currentOnlySeo.response.supportingEvidence.some((item) => item.metric === "Search Console CTR"), true);
+
 const strategist = executeSpecialistWorkflow(context, {
   question: "What are the top three marketing priorities for next week?",
 });
@@ -171,9 +224,9 @@ const strategistInstructions = getSpecialistAgent("marketing-strategist")!.syste
 assert.match(ppcInstructions, /Never infer a cause/i);
 assert.match(analyticsInstructions, /Do not claim a period change without both periods/i);
 assert.match(croInstructions, /label any CRO idea as a hypothesis/i);
-assert.match(seoInstructions, /no Search Console or crawler integration/i);
+assert.match(seoInstructions, /aggregated historical metric/i);
 assert.match(strategistInstructions, /Never add a metric, cause, business fact/i);
 
 console.log(
-  "Specialist agent verification passed: five typed scopes, deterministic routing examples, manual selection, cross-discipline routing, bounded strategist synthesis, unavailable-data behavior, labeled CRO/SEO hypotheses, schema enforcement, and altered-evidence rejection.",
+  "Specialist agent verification passed: five typed scopes, deterministic routing examples, manual selection, cross-discipline routing, bounded strategist synthesis, Search Console rank evidence, unavailable-data behavior, labeled CRO/SEO hypotheses, schema enforcement, and altered-evidence rejection.",
 );

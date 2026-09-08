@@ -8,6 +8,8 @@ import {
   SEARCH_CONSOLE_SOURCE_LABEL,
   type SearchConsoleData,
   type SearchConsoleDimension,
+  type SearchConsoleRankDimension,
+  type SearchConsoleRankRow,
   type SearchConsoleReport,
   type SearchConsoleRow,
 } from "./search-console.ts";
@@ -88,6 +90,25 @@ function dateDaysAgo(days: number, now = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days))
     .toISOString()
     .slice(0, 10);
+}
+
+function addIsoDays(value: string, days: number): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function previousEquivalentSearchConsolePeriod(
+  current: { startDate: string; endDate: string },
+): { startDate: string; endDate: string } {
+  const start = new Date(`${current.startDate}T00:00:00Z`);
+  const end = new Date(`${current.endDate}T00:00:00Z`);
+  const durationDays = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  const previousEnd = addIsoDays(current.startDate, -1);
+  return {
+    startDate: addIsoDays(previousEnd, -(durationDays - 1)),
+    endDate: previousEnd,
+  };
 }
 
 export function hasAnySearchConsoleConfig(
@@ -180,13 +201,58 @@ export async function fetchSearchConsoleData(
       reports.push({ dimension, rows: mapSearchConsoleRows(response.data, [dimension]) });
     }
 
+    const currentPeriod = { startDate: config.startDate, endDate: config.endDate };
+    const previousPeriod = previousEquivalentSearchConsolePeriod(currentPeriod);
+    const rankDimensions: ReadonlyArray<{
+      dimension: SearchConsoleRankDimension;
+      dimensions: SearchConsoleDimension[];
+    }> = [
+      { dimension: "query", dimensions: ["query"] },
+      { dimension: "page", dimensions: ["page"] },
+      { dimension: "query_page", dimensions: ["query", "page"] },
+    ];
+    const currentRows: SearchConsoleRankRow[] = reports.flatMap((report): SearchConsoleRankRow[] => {
+      if (report.dimension !== "query" && report.dimension !== "page") return [];
+      const dimension: "query" | "page" = report.dimension;
+      return report.rows.map((row) => ({ ...row, dimension }));
+    });
+    const previousRows: SearchConsoleRankRow[] = [];
+
+    for (const rankReport of rankDimensions) {
+      if (rankReport.dimension === "query_page") {
+        const currentResponse = await client.request<SearchConsoleApiResponse>({
+          url: `${API_ROOT}/sites/${encodeURIComponent(config.propertyUrl)}/searchAnalytics/query`,
+          method: "POST",
+          data: {
+            ...currentPeriod,
+            dimensions: rankReport.dimensions,
+            rowLimit: config.rowLimit,
+          },
+        });
+        currentRows.push(...mapSearchConsoleRows(currentResponse.data, rankReport.dimensions)
+          .map((row) => ({ ...row, dimension: rankReport.dimension })));
+      }
+      const previousResponse = await client.request<SearchConsoleApiResponse>({
+        url: `${API_ROOT}/sites/${encodeURIComponent(config.propertyUrl)}/searchAnalytics/query`,
+        method: "POST",
+        data: {
+          ...previousPeriod,
+          dimensions: rankReport.dimensions,
+          rowLimit: config.rowLimit,
+        },
+      });
+      previousRows.push(...mapSearchConsoleRows(previousResponse.data, rankReport.dimensions)
+        .map((row) => ({ ...row, dimension: rankReport.dimension })));
+    }
+
     return {
       source: SEARCH_CONSOLE_SOURCE,
       sourceLabel: SEARCH_CONSOLE_SOURCE_LABEL,
       propertyUrl: config.propertyUrl,
-      dateRange: { startDate: config.startDate, endDate: config.endDate },
+      dateRange: currentPeriod,
       fetchedAt: fetchedAt.toISOString(),
       reports,
+      rankTracking: { currentPeriod, previousPeriod, currentRows, previousRows },
     };
   } catch (error) {
     if (error instanceof SearchConsoleApiError) throw error;

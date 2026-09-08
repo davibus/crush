@@ -23,6 +23,7 @@ import {
   type OpenAIStructuredResponse,
 } from "@/lib/openai-structured-response";
 import { executeSpecialistWorkflow } from "@/lib/specialist-analysis";
+import { buildSeoRankTracking } from "@/lib/seo-rank-tracking";
 import { resolveApiWorkspace } from "@/lib/workspace-access";
 
 const MODEL = "gpt-4o-mini";
@@ -158,6 +159,8 @@ export async function POST(request: Request) {
         analysis,
         dailyMetrics: marketingData.dailyMetrics,
         ga4: marketingData.ga4,
+        searchConsole: marketingData.searchConsole,
+        rankTracking: buildSeoRankTracking(marketingData.searchConsole),
       },
       chatRequest,
     );

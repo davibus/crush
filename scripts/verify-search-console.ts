@@ -6,6 +6,7 @@ import { loadSearchConsoleDataForWorkspace } from "../lib/marketing-data-source.
 import {
   fetchSearchConsoleData,
   mapSearchConsoleRows,
+  previousEquivalentSearchConsolePeriod,
   readSearchConsoleApiConfig,
   SEARCH_CONSOLE_READONLY_SCOPE,
   SearchConsoleApiError,
@@ -33,12 +34,13 @@ const apiRows: Record<string, SearchConsoleApiResponse> = {
   page: { rows: [{ keys: ["https://tenant-a.example/organic"], clicks: 40, impressions: 1500, ctr: 0.0266666667, position: 6.2 }] },
   country: { rows: [{ keys: ["usa"], clicks: 50, impressions: 2000, ctr: 0.025, position: 7.1 }] },
   device: { rows: [{ keys: ["MOBILE"], clicks: 30, impressions: 1200, ctr: 0.025, position: 7.8 }] },
+  query_page: { rows: [{ keys: ["crush marketing", "https://tenant-a.example/organic"], clicks: 25, impressions: 1000, ctr: 0.025, position: 8.4 }] },
 };
 const requests: Parameters<SearchConsoleHttpClient["request"]>[0][] = [];
 const client: SearchConsoleHttpClient = {
   async request<T>(options: Parameters<SearchConsoleHttpClient["request"]>[0]) {
     requests.push(options);
-    const dimension = options.data.dimensions[0]!;
+    const dimension = options.data.dimensions.join("_");
     return { data: apiRows[dimension] as T };
   },
 };
@@ -61,8 +63,13 @@ assert.equal(data.reports.find(({ dimension }) => dimension === "query")!.rows[0
 assert.equal(data.reports.find(({ dimension }) => dimension === "page")!.rows[0]!.page, "https://tenant-a.example/organic");
 assert.equal(data.reports[0]!.rows[0]!.ctr, 0.025, "Search Console CTR must remain the API ratio.");
 assert.equal(data.reports[0]!.rows[0]!.averagePosition, 8.4, "Average position must preserve Search Console semantics.");
-assert.equal(requests.length, 4);
-assert.ok(requests.every(({ data: body }) => body.startDate === config.startDate && body.endDate === config.endDate));
+assert.equal(requests.length, 8);
+const previousPeriod = previousEquivalentSearchConsolePeriod(config);
+assert.deepEqual(previousPeriod, { startDate: "2026-07-04", endDate: "2026-07-31" });
+assert.equal(requests.filter(({ data: body }) => body.startDate === config.startDate && body.endDate === config.endDate).length, 5);
+assert.equal(requests.filter(({ data: body }) => body.startDate === previousPeriod.startDate && body.endDate === previousPeriod.endDate).length, 3);
+assert.equal(data.rankTracking?.currentRows.some((row) => row.dimension === "query_page" && row.query && row.page), true);
+assert.equal(data.rankTracking?.previousRows.length, 3);
 assert.ok(requests.every(({ url }) => url.includes(encodeURIComponent(config.propertyUrl))));
 assert.equal(SEARCH_CONSOLE_READONLY_SCOPE, "https://www.googleapis.com/auth/webmasters.readonly");
 
@@ -141,5 +148,8 @@ assert.equal(/SEARCH_CONSOLE_PROPERTY_URL|propertyUrl/.test(apiRoute), false, "B
 const component = await readFile("app/components/search-console-context-panel.tsx", "utf8");
 assert.equal(component.includes("privateKey"), false);
 assert.equal(component.includes("propertyUrl"), false);
+const rankComponent = await readFile("app/components/seo-rank-tracking-panel.tsx", "utf8");
+assert.equal(rankComponent.includes("privateKey"), false);
+assert.equal(rankComponent.includes("propertyUrl"), false);
 
-console.log("Search Console verification passed: read-only scope, response mapping, query/page/country/device metrics, date propagation, workspace isolation, safe projections, and unconfigured/empty/error states.");
+console.log("Search Console verification passed: read-only scope, response mapping, query/page/country/device metrics, equal prior-period rank requests, date propagation, workspace isolation, safe projections, and unconfigured/empty/error states.");

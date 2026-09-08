@@ -9,8 +9,8 @@ boundaries while retaining Crush's deterministic evidence model.
 `lib/specialist-agents.ts` defines the five typed agents, their responsibilities,
 supported context, boundaries, system instructions, shared Zod output schema,
 registry, and deterministic router. `lib/specialist-analysis.ts` executes the
-selected route against the same prepared Google Ads and optional GA4 context the
-existing AI endpoint already uses.
+selected route against the same prepared Google Ads, optional GA4, and optional
+Search Console/rank-movement context the existing AI endpoint already uses.
 
 The shared structured output contains:
 
@@ -36,9 +36,11 @@ allowed Crush context.
 - **CRO Analyst** handles supported landing-page and funnel outcomes. Without
   page content, step-level funnel data, or experiments, possible explanations
   are labeled hypotheses with a validation plan.
-- **SEO Analyst** handles available GA4 Organic Search context. It explicitly
-  reports that Crush does not have Search Console or crawler evidence and does
-  not claim rankings, queries, indexation, backlinks, or technical findings.
+- **SEO Analyst** handles Search Console query/page metrics and deterministic
+  equivalent-period average-position movement, plus available GA4 Organic Search
+  context. It treats average position as aggregated historical data and never
+  assigns algorithm, competitor, backlink, technical, or content causes without
+  separate evidence.
 - **Marketing Strategist / CMO** synthesizes validated specialist outputs and
   prioritizes their actions without introducing new facts.
 
@@ -67,8 +69,9 @@ four contributor outputs and does not convert those limitations into facts.
 
 The PPC specialist reuses the deterministic answer packets and calculations
 from Ask Your Marketing Data. Analytics, CRO, and SEO compute only
-from loaded GA4 rows when present. A one-period snapshot is never described as
-a measured increase or decline. Specialist metadata and structured analyses are
+from loaded GA4 or Search Console rows when present. A one-period snapshot is
+never described as a measured increase or decline. Rank thresholds, movement,
+and evidence IDs are calculated before specialist synthesis. Specialist metadata and structured analyses are
 validated in the server route before being returned to the browser. The OpenAI
 key remains server-only, and the pre-existing non-chat AI insight path continues
 to use OpenAI structured output and deterministic candidate validation.

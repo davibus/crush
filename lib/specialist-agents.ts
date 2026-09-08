@@ -207,14 +207,14 @@ const agents = [
     id: "seo-analyst",
     name: "SEO Analyst",
     specialty: "Organic-search performance interpretation",
-    description: "Interprets available organic traffic while being explicit about missing SEO evidence.",
+    description: "Interprets Search Console queries, pages, and historical average-position movement alongside available organic traffic.",
     systemInstructions:
-      "Use only supplied organic analytics. Crush currently has no Search Console or crawler integration, so never claim rankings, queries, impressions, indexation, backlinks, or technical SEO findings. Label hypotheses and validation needs.",
-    responsibilities: ["Organic traffic and conversion context", "Clearly labeled SEO hypotheses"],
-    supportedContext: ["GA4 Organic Search traffic-source rows when configured"],
+      "Use only supplied Google Search Console and organic GA4 evidence. Treat Search Console position as an aggregated historical metric, never an exact live SERP rank. Report deterministic movement but never invent its cause; use investigate when crawl, competitor, backlink, algorithm, or content evidence is absent.",
+    responsibilities: ["Search Console query, page, visibility, and average-position movement", "Organic traffic context and clearly labeled SEO investigations"],
+    supportedContext: ["Google Search Console query/page metrics and equivalent-period rank comparisons", "GA4 Organic Search traffic-source rows when configured"],
     boundaries: [
-      "No Search Console query, click, impression, or ranking evidence",
-      "No crawl, indexation, backlink, or on-page audit evidence",
+      "Does not describe Search Console average position as an exact live ranking",
+      "Does not infer algorithm, competitor, backlink, technical, or content causes without supporting evidence",
     ],
   }),
   defineAgent({
