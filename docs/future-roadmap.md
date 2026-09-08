@@ -142,6 +142,15 @@ alerts, but they do not publish content or modify an advertising account.
 
 ### Landing-page AI analysis
 
+> **Implemented in bounded V2 form.** Authenticated workspaces can analyze one
+> explicitly supplied public URL or a bundled fictional fixture using a
+> server-only SSRF-hardened retriever, deterministic HTML evidence, versioned
+> schemas and evidence IDs, exact-match GA4/Ads context where available, safe
+> AI fallback, and CRO specialist integration. The implementation is read-only
+> and treats every recommendation as a test hypothesis. Multi-page crawling,
+> browser rendering, full accessibility auditing, page generation/publishing,
+> deployed experiments, and autonomous optimization remain future work.
+
 - **What:** Evaluate selected landing pages for message match, content clarity,
   conversion friction, accessibility signals, and test hypotheses alongside Ads
   and GA4 outcomes.

@@ -1,6 +1,6 @@
 # Crush — Version 2 foundation
 
-**Crush Version 2 builds on an authenticated multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance, optional GA4 context, and workspace-scoped Google Search Console visibility into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
+**Crush Version 2 builds on an authenticated multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance, optional GA4 context, workspace-scoped Google Search Console visibility, and bounded landing-page evidence into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
 
 The current V2 architecture provides authenticated workspaces at `/clients/[clientId]`, durable PostgreSQL users/memberships, client-scoped caches and report storage, and an authorized-only workspace selector. The local demo remains available through an explicitly development-only identity and fixture repository. It intentionally does not include billing, invitations, tenant-management UI, or account-writing features. See [the multi-client architecture guide](docs/multi-client.md).
 
@@ -34,7 +34,7 @@ Crush explores a deterministic-first answer: application code owns calculations,
 
 ## Screenshot and demo
 
-The dashboard is useful on first open without credentials. By default, it loads the included fictional **Northstar Outdoor Co.** account and visibly labels the experience as **Demo data**. Metrics, charts, the account audit, Ask Your Marketing Data, and specialist workflows work without Google or OpenAI credentials.
+The dashboard is useful on first open without credentials. By default, it loads the included fictional **Northstar Outdoor Co.** account and visibly labels the experience as **Demo data**. Metrics, charts, the account audit, bundled landing-page analysis, Ask Your Marketing Data, and specialist workflows work without Google or OpenAI credentials.
 
 - [View the full project case study](docs/case-study.md)
 - [Follow the recording-ready 2–3 minute demo script](docs/demo-script.md)
@@ -69,7 +69,7 @@ Crush can replace the sample dataset with read-only Google Ads API reporting whi
 
 Customer IDs may contain dashes in the environment file; Crush normalizes and validates them before sending requests. `GOOGLE_ADS_LOGIN_CUSTOMER_ID` is optional and should identify the manager account, not the client account. The reporting window defaults to `LAST_30_DAYS` and supports the values documented in `.env.example`.
 
-`GOOGLE_ADS_API_VERSION` defaults to `v22` in this project. Google retires API versions on a schedule, so set this value to a currently supported version when upgrading. The adapter uses the REST `googleAds:searchStream` endpoint and maps campaign, daily, keyword, search-term, geography, device, and conversion-action rows into the existing Crush types. Geo-target constants are resolved to readable canonical location names when Google supplies a city target.
+`GOOGLE_ADS_API_VERSION` defaults to `v22` in this project. Google retires API versions on a schedule, so set this value to a currently supported version when upgrading. The adapter uses the REST `googleAds:searchStream` endpoint and maps campaign, daily, keyword, search-term, geography, device, conversion-action, and unexpanded final-URL landing-page rows into the existing Crush types. Geo-target constants are resolved to readable canonical location names when Google supplies a city target.
 
 If live credentials or an API request fail, the dashboard displays a warning and safely falls back to the sample dataset. Server logs contain the diagnostic message, but OAuth credentials and access tokens are never returned to the browser.
 
@@ -105,6 +105,24 @@ for Google API setup, the read-only OAuth scope, service-account access,
 reporting dates, tenant isolation, latency, and current limitations. See
 [SEO rank tracking](docs/seo-rank-tracking.md) for comparison methodology,
 thresholds, evidence behavior, specialist use, and missing-data rules.
+
+## Landing-page analysis
+
+Each authenticated workspace can analyze one explicitly supplied public URL or
+the bundled fictional Northstar page. A server-only, SSRF-hardened retriever
+collects bounded static HTML without cookies, JavaScript, form submissions, or
+linked-page crawling. Deterministic code extracts page messaging, CTA/form and
+navigation signals, basic HTML accessibility signals, and exact-match GA4 or
+Google Ads context when it exists. Every issue and proposed experiment links to
+typed evidence IDs.
+
+The feature is labeled **Read-only analysis**. Experiments are hypotheses rather
+than claims of cause or guaranteed lift. Optional OpenAI synthesis can only
+reorder known issue and experiment IDs; missing, failed, or invalid model output
+leaves the deterministic report intact. The current workspace's validated result
+is also available briefly to the CRO specialist. See
+[docs/landing-page-analysis.md](docs/landing-page-analysis.md) for security,
+evidence, limitations, demo steps, and verification.
 
 ## Daily Analysis
 
@@ -195,6 +213,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [GA4 setup](docs/ga4-setup.md)
 - [Google Search Console setup](docs/search-console-setup.md)
 - [SEO rank tracking](docs/seo-rank-tracking.md)
+- [Landing-page analysis](docs/landing-page-analysis.md)
 - [Account score methodology](docs/account-score.md)
 
 ## Deployment note

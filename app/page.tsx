@@ -9,6 +9,7 @@ import ClientSelector from "@/app/components/client-selector";
 import DailyAnalysisPanel from "@/app/components/daily-analysis-panel";
 import GA4ContextPanel from "@/app/components/ga4-context-panel";
 import KpiOverview from "@/app/components/kpi-overview";
+import LandingPageAnalysisPanel from "@/app/components/landing-page-analysis-panel";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
 import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
@@ -269,6 +270,7 @@ export async function ClientDashboard({
 
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="ai-analysis">
           <SectionIntro description="Combine deterministic comparisons with structured AI interpretation to focus attention on changes that matter." eyebrow="AI analysis" title="Move from signals to next actions" />
+          <LandingPageAnalysisPanel clientId={client.id} />
           <DailyAnalysisPanel clientId={client.id} />
           <MarketingInsightsWorkspace clientId={client.id} currency={data.account.currency} />
         </section>

@@ -19,6 +19,7 @@ import {
   type SpecialistAgentId,
 } from "../lib/specialist-agents.ts";
 import { buildSeoRankTracking } from "../lib/seo-rank-tracking.ts";
+import { buildDeterministicLandingPageAnalysis } from "../lib/landing-page-analysis.ts";
 import { SEARCH_CONSOLE_SOURCE, SEARCH_CONSOLE_SOURCE_LABEL, type SearchConsoleDataState } from "../lib/search-console.ts";
 
 async function loadJson<T>(path: string): Promise<T> {
@@ -117,6 +118,26 @@ assert.equal(cro.response.specialistAnalysis?.findings[0]?.kind, "limitation");
 assert.match(cro.response.specialistAnalysis?.hypotheses[0]?.statement ?? "", /^Hypothesis:/);
 assert.equal(cro.response.specialistAnalysis?.recommendations[0]?.evidence.length, 0);
 assert.ok(cro.response.specialistAnalysis?.recommendations[0]?.hypothesisId);
+
+const analyzedPage = buildDeterministicLandingPageAnalysis({
+  requestedUrl: "https://example.com/landing",
+  finalUrl: "https://example.com/landing",
+  html: "<html><head><title>Example offer</title></head><body><h1>Example offer</h1><img src='hero.jpg'><form><input name='email'><input name='company'><input name='phone'><input name='budget'><button>Send</button></form></body></html>",
+  retrievedAt: "2026-09-08T12:00:00.000Z",
+  source: "live_url",
+  redirectCount: 0,
+  bytes: 250,
+  contentType: "text/html",
+}, { ga4: { status: "unconfigured" } }, "2026-09-08T12:00:00.000Z");
+const croWithPageEvidence = executeSpecialistWorkflow({ ...context, landingPageAnalysis: analyzedPage }, {
+  question: "What landing-page experiment should we review?",
+  specialistId: "cro-analyst",
+});
+assert.equal(croWithPageEvidence.response.status, "supported");
+assert.match(croWithPageEvidence.response.answer, /deterministic review signal/i);
+assert.match(croWithPageEvidence.response.answer, /not proof/i);
+assert.ok(croWithPageEvidence.response.specialistAnalysis?.recommendations.every((item) => item.hypothesisId));
+assert.match(croWithPageEvidence.response.limitations.join(" "), /GA4 landing-page metrics are unavailable/i);
 
 const seo = executeSpecialistWorkflow(context, {
   question: "Why did organic traffic fall?",

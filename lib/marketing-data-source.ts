@@ -213,6 +213,7 @@ export async function getMarketingData(
       keywords: data.keywords,
       searchTerms: data.searchTerms,
       conversions: data.conversions,
+      landingPages: data.landingPages,
       ga4,
       searchConsole,
     };

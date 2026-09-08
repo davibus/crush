@@ -8,6 +8,7 @@ import type {
   GoogleAdsDevice,
   GoogleAdsGeography,
   GoogleAdsKeyword,
+  GoogleAdsLandingPage,
   GoogleAdsMetrics,
   GoogleAdsSearchTerm,
 } from "./google-ads.ts";
@@ -49,6 +50,7 @@ export type LiveGoogleAdsData = {
   keywords: GoogleAdsKeyword[];
   searchTerms: GoogleAdsSearchTerm[];
   conversions: GoogleAdsConversion[];
+  landingPages: GoogleAdsLandingPage[];
 };
 
 type FetchImplementation = typeof fetch;
@@ -460,7 +462,7 @@ export async function fetchGoogleAdsData(
   fetcher: FetchImplementation = fetch,
 ): Promise<LiveGoogleAdsData> {
   const token = await accessToken(config, fetcher);
-  const [campaignRows, dailyRows, keywordRows, searchTermRows, geographyRows, deviceRows, conversionRows] =
+  const [campaignRows, dailyRows, keywordRows, searchTermRows, geographyRows, deviceRows, conversionRows, landingPageRows] =
     await Promise.all([
       search(config, token, query("customer.id, customer.descriptive_name, customer.currency_code, campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign_budget.amount_micros", "campaign", config.dateRange), fetcher),
       search(config, token, query("segments.date", "customer", config.dateRange), fetcher),
@@ -469,6 +471,7 @@ export async function fetchGoogleAdsData(
       search(config, token, query("campaign.id, campaign.name, geographic_view.resource_name, segments.geo_target_city", "geographic_view", config.dateRange), fetcher),
       search(config, token, query("campaign.id, campaign.name, segments.device", "campaign", config.dateRange), fetcher),
       search(config, token, query("campaign.id, campaign.name, segments.conversion_action_name", "campaign", config.dateRange, conversionMetricFields), fetcher),
+      search(config, token, query("campaign.id, campaign.name, landing_page_view.unexpanded_final_url", "landing_page_view", config.dateRange), fetcher),
     ]);
 
   const geoTargetResources = [
@@ -573,5 +576,10 @@ export async function fetchGoogleAdsData(
         conversionValue: values.conversionValue,
       };
     }),
+    landingPages: landingPageRows.map((row) => {
+      const view = nested(row, "landingPageView");
+      const finalUrl = text(view.unexpandedFinalUrl);
+      return { ...dimensionBase(row, `landing-page-${Buffer.from(finalUrl).toString("base64url").slice(0, 40)}`), finalUrl };
+    }).filter((row) => row.finalUrl),
   };
 }

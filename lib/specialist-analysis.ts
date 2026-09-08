@@ -1,6 +1,7 @@
 import type { PreparedCampaignPerformanceAnalysis } from "./campaign-performance-analyzer.ts";
 import type { GA4Data, GA4DataState, GA4Metrics } from "./ga4.ts";
 import type { GoogleAdsDailyMetric } from "./google-ads.ts";
+import type { LandingPageAnalysis } from "./landing-page-analysis.ts";
 import {
   buildGroundedChatCandidates,
   resolveDeterministicCalculation,
@@ -29,6 +30,7 @@ export type SpecialistMarketingContext = {
   ga4: GA4DataState;
   searchConsole: SearchConsoleDataState;
   rankTracking: SeoRankTrackingState;
+  landingPageAnalysis?: LandingPageAnalysis;
 };
 
 export type ExecuteSpecialistRequest = {
@@ -323,6 +325,44 @@ function analyticsExecution(
 }
 
 function croExecution(context: SpecialistMarketingContext): SpecialistExecution {
+  if (context.landingPageAnalysis) {
+    const pageAnalysis = context.landingPageAnalysis;
+    const topIssues = pageAnalysis.issues.slice(0, 3);
+    const evidence: MarketingEvidence[] = topIssues.map((issue) => ({
+      metric: `Page analysis: ${issue.category.replaceAll("_", " ")}`.slice(0, 100),
+      value: 1,
+      unit: "count",
+      context: `${issue.title}; evidence IDs ${issue.evidenceIds.join(", ")}; ${pageAnalysis.page.finalUrl}`.slice(0, 300),
+    }));
+    const answer = topIssues.length
+      ? `${pageAnalysis.page.finalUrl} has ${pageAnalysis.issues.length} deterministic review signal(s). The leading opportunity is “${topIssues[0]!.title}.” This is page evidence for a CRO hypothesis, not proof of a performance cause.`
+      : `${pageAnalysis.page.finalUrl} was analyzed, but no deterministic CRO issue crossed the bounded rules. This does not prove the page has no optimization opportunities.`;
+    const hypotheses = pageAnalysis.experiments.slice(0, 3).map((experiment) => ({ id: experiment.id, statement: experiment.hypothesis, validationNeeded: experiment.test }));
+    const recommendations = pageAnalysis.experiments.slice(0, 3).map((experiment) => ({
+      action: experiment.test,
+      rationale: `${experiment.title}. This proposed test is evidence-linked and does not forecast lift.`,
+      priority: experiment.priority,
+      evidence: evidence.filter((_, index) => index < Math.max(1, topIssues.length)),
+      hypothesisId: experiment.id,
+      sourceAgentIds: ["cro-analyst" as const],
+    }));
+    const limitations = [
+      ...pageAnalysis.limitations.slice(0, 3),
+      pageAnalysis.sources.ga4.status === "available" ? pageAnalysis.sources.ga4.detail : "GA4 landing-page metrics are unavailable for the analyzed URL.",
+      pageAnalysis.sources.googleAds.status === "available" ? pageAnalysis.sources.googleAds.detail : "No defensible Google Ads campaign/page mapping is available.",
+    ];
+    const analysis = specialistAnalysisSchema.parse({
+      agent: specialistIdentity("cro-analyst"),
+      summary: answer,
+      findings: topIssues.length ? topIssues.map((issue, index) => ({ title: issue.title, detail: issue.explanation, kind: "measured" as const, evidence: evidence[index] ? [evidence[index]] : [], sourceAgentIds: ["cro-analyst" as const] })) : [{ title: "No bounded page issue detected", detail: answer, kind: "limitation" as const, evidence: [], sourceAgentIds: ["cro-analyst" as const] }],
+      evidence,
+      recommendations,
+      limitations,
+      confidence: pageAnalysis.sources.ga4.status === "available" ? 0.78 : 0.62,
+      hypotheses,
+    });
+    return { analysis, response: { status: topIssues.length ? "supported" : "insufficient_data", answer, supportingEvidence: evidence, limitations: limitations.slice(0, 4), referencedEntities: [] } };
+  }
   const hypothesis = {
     id: "cro-message-match",
     statement: "Hypothesis: landing-page message match or funnel friction may be suppressing conversion rate; Crush has no page-content, step-level funnel, or experiment evidence to confirm this.",
@@ -332,7 +372,7 @@ function croExecution(context: SpecialistMarketingContext): SpecialistExecution 
     return ga4UnavailableExecution(
       "cro-analyst",
       "Crush cannot identify a measured landing-page conversion-rate opportunity because page-level analytics are unavailable. A possible page or funnel issue is only a hypothesis.",
-      ["No GA4 landing-page rows, page content, funnel steps, or experiment results are available."],
+      ["No page was analyzed. No GA4 landing-page rows, page content, funnel steps, or experiment results are available."],
       hypothesis,
     );
   }

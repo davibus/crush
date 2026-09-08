@@ -100,6 +100,7 @@ const dependencies: DailyAnalysisDataDependencies = {
       keywords: [],
       searchTerms: [],
       conversions: [],
+      landingPages: [],
     };
   },
   async fetchGA4Data(config) {

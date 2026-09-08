@@ -86,6 +86,8 @@ const fetcher: typeof fetch = async (input, init) => {
       },
       segments: { conversionActionName: "Qualified lead" },
     };
+  } else if (payload.query.includes("FROM landing_page_view")) {
+    row = { ...common, landingPageView: { unexpandedFinalUrl: "https://example.com/landing" } };
   } else if (payload.query.includes("FROM customer")) {
     row = { metrics: baseMetrics, segments: { date: "2026-08-29" } };
   } else {
@@ -100,7 +102,7 @@ const fetcher: typeof fetch = async (input, init) => {
 };
 
 const result = await fetchGoogleAdsData(config, fetcher);
-assert.equal(requests.length, 9, "Expected one OAuth request and eight Google Ads requests.");
+assert.equal(requests.length, 10, "Expected one OAuth request and nine Google Ads requests.");
 assert.equal(result.account.name, "Live account");
 assert.equal(result.campaigns[0]?.dailyBudget, 50);
 assert.equal(result.campaigns[0]?.metrics.cost, 250);
@@ -112,6 +114,10 @@ assert.equal(result.devices[0]?.device, "MOBILE");
 assert.equal(result.conversions[0]?.conversionAction, "Qualified lead");
 assert.equal(result.conversions[0]?.conversions, 10);
 assert.equal(result.conversions[0]?.conversionValue, 800);
+assert.equal(result.landingPages[0]?.finalUrl, "https://example.com/landing");
+
+const landingPageRequest = requests.find((request) => request.query?.includes("FROM landing_page_view"));
+assert.match(landingPageRequest?.query ?? "", /landing_page_view\.unexpanded_final_url/);
 
 const conversionRequest = requests.find((request) =>
   request.query?.includes("segments.conversion_action_name")
@@ -281,4 +287,4 @@ await assert.rejects(
   },
 );
 
-console.log("Google Ads API verification passed: secure OAuth exchange, seven metric datasets, readable geography lookup, micros conversion, internal-model mapping, manager headers, configuration validation, and sanitized structured errors.");
+console.log("Google Ads API verification passed: secure OAuth exchange, eight metric datasets including landing-page final URLs, readable geography lookup, micros conversion, internal-model mapping, manager headers, configuration validation, and sanitized structured errors.");

@@ -195,9 +195,9 @@ const agents = [
     specialty: "Conversion-rate and funnel opportunities",
     description: "Separates measured site-conversion evidence from testable page and funnel hypotheses.",
     systemInstructions:
-      "Use only supplied conversion and page-level evidence for measured conclusions. When page content, experiments, or funnel steps are unavailable, explicitly label any CRO idea as a hypothesis and state how to validate it.",
+      "Use only supplied conversion and page-level evidence for measured conclusions. Landing-page analysis observations and accessibility signals may support reviewable hypotheses but never causal claims. When page content, experiments, or funnel steps are unavailable, explicitly label any CRO idea as a hypothesis and state how to validate it.",
     responsibilities: ["Landing-page and funnel performance", "Evidence-based conversion experiments"],
-    supportedContext: ["GA4 landing-page sessions and key events", "Loaded conversion metrics"],
+    supportedContext: ["Validated deterministic landing-page analysis when one exists", "GA4 landing-page sessions and key events", "Loaded conversion metrics"],
     boundaries: [
       "Does not diagnose page copy, UX, speed, or form friction without page-level evidence",
       "Labels unsupported CRO explanations as hypotheses",

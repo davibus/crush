@@ -23,6 +23,7 @@ import {
   type OpenAIStructuredResponse,
 } from "@/lib/openai-structured-response";
 import { executeSpecialistWorkflow } from "@/lib/specialist-analysis";
+import { getWorkspaceLandingPageAnalysis } from "@/lib/landing-page-analysis-store";
 import { buildSeoRankTracking } from "@/lib/seo-rank-tracking";
 import { resolveApiWorkspace } from "@/lib/workspace-access";
 
@@ -161,6 +162,7 @@ export async function POST(request: Request) {
         ga4: marketingData.ga4,
         searchConsole: marketingData.searchConsole,
         rankTracking: buildSeoRankTracking(marketingData.searchConsole),
+        landingPageAnalysis: getWorkspaceLandingPageAnalysis(client.id),
       },
       chatRequest,
     );
