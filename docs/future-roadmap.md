@@ -254,6 +254,15 @@ this phase.
 
 ### AI-generated landing pages
 
+> **Implemented in V2 Issue #10 in bounded preview-only form:** authenticated
+> workspaces can create one editable structured-copy draft from a versioned brief
+> and separated first-party, competitor, and generated-theme evidence. Strict
+> schemas, evidence references, detectable-claim validation, safe URLs, tenant-
+> keyed short-lived storage, deterministic fallback, and explicit insufficient-
+> data behavior preserve the existing trust boundaries. Model HTML, durable
+> approvals/history, assets, forms, CMS/hosting integration, publishing,
+> deployment, experiments, and traffic allocation remain future work.
+
 - **What:** Produce editable landing-page briefs and page drafts or components
   grounded in an approved offer, audience, and brand system.
 - **Why:** Shorten the path from a supported marketing hypothesis to a testable
@@ -417,7 +426,7 @@ user value, fit with V1, complexity, and the risk of crossing a trust boundary:
 6. **Extend bounded competitor analysis only with approved sources.** Explicit
    public-page comparison is implemented; licensed advertising/search data,
    durable snapshots, cost controls, and broader compliance review remain future.
-7. **Extend implemented ad-copy drafts only after review, then consider landing-page drafts.** Draft-only RSA copy is implemented; durable approvals, richer policy validation, and any later delivery integration require separate safety work. Page generation still needs preview isolation plus broader security, accessibility, analytics, and publishing controls.
+7. **Extend implemented ad-copy and landing-page drafts only after review.** Draft-only RSA copy and preview-only structured landing-page copy are implemented; durable approvals, richer policy validation, production design/accessibility/security checks, and any later delivery integration require separate safety work.
 8. **Generate negative-keyword proposals without writes.** This closely matches
    an existing V1 deterministic candidate and provides a safe approval workflow
    to test.

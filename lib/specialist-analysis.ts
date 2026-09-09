@@ -4,6 +4,7 @@ import type { CompetitorAnalysis } from "./competitor-analysis.ts";
 import type { GA4Data, GA4DataState, GA4Metrics } from "./ga4.ts";
 import type { GoogleAdsDailyMetric } from "./google-ads.ts";
 import type { LandingPageAnalysis } from "./landing-page-analysis.ts";
+import type { LandingPageDraftResult } from "./landing-page-generation.ts";
 import {
   buildGroundedChatCandidates,
   resolveDeterministicCalculation,
@@ -35,6 +36,7 @@ export type SpecialistMarketingContext = {
   landingPageAnalysis?: LandingPageAnalysis;
   competitorAnalysis?: CompetitorAnalysis;
   adCopyDraft?: AdCopyDraftResult;
+  landingPageDraft?: LandingPageDraftResult;
 };
 
 export type ExecuteSpecialistRequest = {
@@ -401,6 +403,17 @@ function competitorCroExecution(competitor: CompetitorAnalysis): SpecialistExecu
 }
 
 function croExecution(context: SpecialistMarketingContext, request: ExecuteSpecialistRequest): SpecialistExecution {
+  const asksForGeneratedPage = /\b(?:generated|draft|preview|copy|headline|cta|faq)\b/i.test(request.question) && /\blanding[- ]page\b/i.test(request.question);
+  if (asksForGeneratedPage) {
+    const stored = context.landingPageDraft;
+    if (!stored || stored.status !== "ready" || !stored.draft) return ga4UnavailableExecution("cro-analyst", "No validated workspace-scoped landing-page draft is available. Generate a preview-only draft first.", ["A generated draft is creative output, not measured page evidence, and cannot be inferred from performance data."]);
+    const sectionCount = stored.draft.benefits.length + stored.draft.supportingProof.length + stored.draft.faqs.length + 3;
+    const artifactEvidence: MarketingEvidence[] = [{ metric: "Validated draft sections", value: sectionCount, unit: "count", context: `${stored.schemaVersion}; generated preview artifact metadata only, not measured business or performance evidence.` }];
+    const answer = `The latest DRAFT / PREVIEW ONLY landing-page artifact contains a hero, ${stored.draft.benefits.length} benefit section(s), ${stored.draft.supportingProof.length} supporting-message section(s), ${stored.draft.faqs.length} FAQ(s), and a final CTA. It has not been published or tested. Its generated copy is untrusted creative context, not evidence of business facts or performance.`;
+    const hypothesis = { id: "landing-page-generated-draft-review", statement: "Hypothesis: the reviewed draft may be suitable for a controlled page-design and message test; no conversion, SEO, or traffic outcome is predicted.", validationNeeded: "Complete human factual, brand, legal, accessibility, privacy, SEO, design, and implementation review before separately creating any test." };
+    const analysis = specialistAnalysisSchema.parse({ agent: specialistIdentity("cro-analyst"), summary: answer, findings: [{ title: "Validated preview artifact available", detail: "A structured draft exists for review. Its presence and section count are known; its claims and effectiveness are not treated as measured evidence.", kind: "measured", evidence: artifactEvidence, sourceAgentIds: ["cro-analyst"] }], evidence: artifactEvidence, recommendations: [{ action: hypothesis.validationNeeded, rationale: "Draft generation does not establish factual accuracy or expected performance.", priority: "medium", evidence: artifactEvidence, hypothesisId: hypothesis.id, sourceAgentIds: ["cro-analyst"] }], limitations: stored.limitations.slice(0, 4), confidence: 0.85, hypotheses: [hypothesis] });
+    return { analysis, response: { status: "supported", answer, supportingEvidence: artifactEvidence, limitations: analysis.limitations, referencedEntities: [] } };
+  }
   if (/\b(?:competitors?|competitive|positioning|messaging gaps?)\b/i.test(request.question)) {
     if (context.competitorAnalysis) return competitorCroExecution(context.competitorAnalysis);
     return ga4UnavailableExecution(

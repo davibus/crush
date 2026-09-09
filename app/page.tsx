@@ -12,6 +12,7 @@ import DailyAnalysisPanel from "@/app/components/daily-analysis-panel";
 import GA4ContextPanel from "@/app/components/ga4-context-panel";
 import KpiOverview from "@/app/components/kpi-overview";
 import LandingPageAnalysisPanel from "@/app/components/landing-page-analysis-panel";
+import LandingPageGenerationPanel from "@/app/components/landing-page-generation-panel";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
 import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
@@ -275,6 +276,7 @@ export async function ClientDashboard({
           <LandingPageAnalysisPanel clientId={client.id} />
           <CompetitorAnalysisPanel clientId={client.id} />
           <AdCopyGenerationPanel clientId={client.id} />
+          <LandingPageGenerationPanel clientId={client.id} />
           <DailyAnalysisPanel clientId={client.id} />
           <MarketingInsightsWorkspace clientId={client.id} currency={data.account.currency} />
         </section>

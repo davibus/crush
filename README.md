@@ -156,6 +156,27 @@ action. The Paid Media specialist can discuss the latest workspace-scoped draft
 without predicting performance. See [docs/ad-copy-generation.md](docs/ad-copy-generation.md)
 for evidence rules, fallback behavior, security, demo steps, and verification.
 
+## AI landing-page drafting
+
+Each authorized workspace can submit a versioned offer, audience, conversion-goal,
+and optional brand/claim brief to create one structured **DRAFT / PREVIEW ONLY**
+landing-page copy artifact. The generator can use validated first-party page
+language and workspace Ads, GA4, and Search Console context while keeping
+competitor observations and prior generated ad copy in inspiration-only scopes.
+Every visible copy block cites bounded first-party evidence, and deterministic
+validation rejects unknown IDs, unsafe URLs, missing sections, unreasonable
+lengths, competitor attribution, and detectable unsupported business or
+performance claims.
+
+The dashboard renders the structured fields as a readable preview and supports
+browser-local editing of headlines, CTAs, and section copy. It does not accept
+model HTML, save local edits, create a public page, connect to a CMS, deploy,
+publish, run an experiment, or allocate traffic. The CRO specialist can discuss
+only the stored preview artifact and does not treat generated copy as measured
+evidence. See [docs/landing-page-generation.md](docs/landing-page-generation.md)
+for schemas, grounding, fallback behavior, security boundaries, limitations,
+and verification.
+
 ## Daily Analysis
 
 The workspace can produce a saved daily performance analysis directly from the
@@ -248,6 +269,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [Landing-page analysis](docs/landing-page-analysis.md)
 - [Competitor analysis](docs/competitor-analysis.md)
 - [AI ad-copy drafting](docs/ad-copy-generation.md)
+- [AI landing-page drafting](docs/landing-page-generation.md)
 - [Account score methodology](docs/account-score.md)
 
 ## Deployment note
