@@ -1,6 +1,6 @@
 # Crush — Version 2 foundation
 
-**Crush Version 2 builds on an authenticated multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance, optional GA4 context, workspace-scoped Google Search Console visibility, and bounded landing-page evidence into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
+**Crush Version 2 builds on an authenticated multi-client workspace foundation while preserving the completed Version 1 product.** The application turns read-only Google Ads performance, optional GA4 context, workspace-scoped Google Search Console visibility, bounded landing-page evidence, and explicitly selected public competitor evidence into explainable decisions through a dashboard, deterministic account auditing, recurring analysis, grounded AI insights, and conversational specialist workflows.
 
 The current V2 architecture provides authenticated workspaces at `/clients/[clientId]`, durable PostgreSQL users/memberships, client-scoped caches and report storage, and an authorized-only workspace selector. The local demo remains available through an explicitly development-only identity and fixture repository. It intentionally does not include billing, invitations, tenant-management UI, or account-writing features. See [the multi-client architecture guide](docs/multi-client.md).
 
@@ -124,6 +124,23 @@ is also available briefly to the CRO specialist. See
 [docs/landing-page-analysis.md](docs/landing-page-analysis.md) for security,
 evidence, limitations, demo steps, and verification.
 
+## Competitor analysis
+
+Authenticated workspaces can compare one to three explicitly supplied public
+competitor pages. Crush reuses the SSRF-hardened landing-page retriever and
+deterministic HTML extraction, isolates per-source retrieval failures, and keeps
+competitor evidence distinct from the workspace's recent validated page
+analysis. Observable facts and cross-page patterns are separated from
+evidence-linked differentiation hypotheses; no private competitor analytics or
+performance is inferred.
+
+OpenAI remains optional and may only reorder application-authored IDs. The
+existing CRO specialist can answer competitor messaging and CTA questions from
+the workspace-scoped result. Three visibly fictional Northstar competitor pages
+provide a credential-free demo. See
+[docs/competitor-analysis.md](docs/competitor-analysis.md) for retrieval security,
+grounding, limitations, demo steps, and verification.
+
 ## Daily Analysis
 
 The workspace can produce a saved daily performance analysis directly from the
@@ -214,6 +231,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [Google Search Console setup](docs/search-console-setup.md)
 - [SEO rank tracking](docs/seo-rank-tracking.md)
 - [Landing-page analysis](docs/landing-page-analysis.md)
+- [Competitor analysis](docs/competitor-analysis.md)
 - [Account score methodology](docs/account-score.md)
 
 ## Deployment note

@@ -197,6 +197,17 @@ alerts, but they do not publish content or modify an advertising account.
 
 ### Competitor analysis
 
+> **Implemented in bounded V2 form.** Authenticated workspaces can compare one
+> to three explicitly supplied public pages (or bundled fictional fixtures)
+> through the existing SSRF-hardened static-HTML retriever. Versioned,
+> source-separated evidence supports deterministic message, CTA, structure, and
+> repeated-theme comparisons; opportunities remain labeled hypotheses. A recent
+> validated own-page analysis is reused when available, optional AI can only
+> reorder allowlisted IDs, and the CRO specialist receives the tenant-scoped
+> result. Automatic discovery, crawling, licensed advertising/search
+> intelligence, durable snapshots, and competitor performance metrics remain
+> future extensions.
+
 - **What:** Summarize observable competitor ads, positioning, keywords, landing
   pages, and visibility from approved sources.
 - **Why:** Give campaign and content decisions external market context that V1
@@ -395,8 +406,9 @@ user value, fit with V1, complexity, and the risk of crossing a trust boundary:
    safe page retrieval and untrusted-content handling before AI review.
 5. **Develop and backtest budget and conversion forecasts.** Release only when
    uncertainty, data sufficiency, and source boundaries are visible.
-6. **Add competitor analysis.** Its value is real, but external data licensing,
-   provenance, cost, and compliance make it a later analytical source.
+6. **Extend bounded competitor analysis only with approved sources.** Explicit
+   public-page comparison is implemented; licensed advertising/search data,
+   durable snapshots, cost controls, and broader compliance review remain future.
 7. **Introduce ad-copy drafts, then landing-page drafts.** Copy has a smaller
    surface area; page generation needs preview isolation plus broader security,
    accessibility, analytics, and publishing controls.

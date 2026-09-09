@@ -6,6 +6,7 @@ import { signOut } from "@/auth";
 import crushTurtle from "@/images/crush-turtle.png";
 import AccountAudit from "@/app/components/account-audit";
 import ClientSelector from "@/app/components/client-selector";
+import CompetitorAnalysisPanel from "@/app/components/competitor-analysis-panel";
 import DailyAnalysisPanel from "@/app/components/daily-analysis-panel";
 import GA4ContextPanel from "@/app/components/ga4-context-panel";
 import KpiOverview from "@/app/components/kpi-overview";
@@ -271,6 +272,7 @@ export async function ClientDashboard({
         <section className="scroll-mt-20 border-t border-slate-200 pt-14" id="ai-analysis">
           <SectionIntro description="Combine deterministic comparisons with structured AI interpretation to focus attention on changes that matter." eyebrow="AI analysis" title="Move from signals to next actions" />
           <LandingPageAnalysisPanel clientId={client.id} />
+          <CompetitorAnalysisPanel clientId={client.id} />
           <DailyAnalysisPanel clientId={client.id} />
           <MarketingInsightsWorkspace clientId={client.id} currency={data.account.currency} />
         </section>

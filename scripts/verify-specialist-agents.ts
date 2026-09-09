@@ -20,6 +20,7 @@ import {
 } from "../lib/specialist-agents.ts";
 import { buildSeoRankTracking } from "../lib/seo-rank-tracking.ts";
 import { buildDeterministicLandingPageAnalysis } from "../lib/landing-page-analysis.ts";
+import { buildDeterministicCompetitorAnalysis } from "../lib/competitor-analysis.ts";
 import { SEARCH_CONSOLE_SOURCE, SEARCH_CONSOLE_SOURCE_LABEL, type SearchConsoleDataState } from "../lib/search-console.ts";
 
 async function loadJson<T>(path: string): Promise<T> {
@@ -138,6 +139,29 @@ assert.match(croWithPageEvidence.response.answer, /deterministic review signal/i
 assert.match(croWithPageEvidence.response.answer, /not proof/i);
 assert.ok(croWithPageEvidence.response.specialistAnalysis?.recommendations.every((item) => item.hypothesisId));
 assert.match(croWithPageEvidence.response.limitations.join(" "), /GA4 landing-page metrics are unavailable/i);
+
+const competitorAnalysis = buildDeterministicCompetitorAnalysis([{
+  input: { url: "https://competitor.example/offer", name: "Example competitor" },
+  normalizedUrl: "https://competitor.example/offer",
+  page: {
+    requestedUrl: "https://competitor.example/offer", finalUrl: "https://competitor.example/offer",
+    html: "<html><head><title>Competitor offer</title></head><body><h1>Free expert consultation</h1><a>Book a consultation</a></body></html>",
+    retrievedAt: "2026-09-08T12:00:00.000Z", source: "live_url", redirectCount: 0, bytes: 150, contentType: "text/html",
+  },
+}], analyzedPage, "2026-09-08T12:00:00.000Z");
+const croCompetitor = executeSpecialistWorkflow({ ...context, landingPageAnalysis: analyzedPage, competitorAnalysis }, {
+  question: "How does our landing-page messaging differ from the competitor we reviewed?",
+});
+assert.equal(croCompetitor.response.specialist?.id, "cro-analyst");
+assert.equal(croCompetitor.response.status, "supported");
+assert.match(croCompetitor.response.answer, /competitor page/i);
+assert.match(croCompetitor.response.answer, /hypothesis, not evidence of conversion performance/i);
+assert.ok(croCompetitor.response.supportingEvidence.every((item) => /Evidence IDs: ca:/.test(item.context)));
+assert.doesNotMatch(croCompetitor.response.answer, /ROAS|CPA|ad spend|revenue|market share|ranking/i);
+
+const croMissingCompetitor = executeSpecialistWorkflow(context, { question: "What competitor messaging gaps should we investigate?" });
+assert.equal(croMissingCompetitor.response.status, "insufficient_data");
+assert.match(croMissingCompetitor.response.answer, /No workspace-scoped competitor analysis/i);
 
 const seo = executeSpecialistWorkflow(context, {
   question: "Why did organic traffic fall?",

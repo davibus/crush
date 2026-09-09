@@ -1,4 +1,5 @@
 import type { PreparedCampaignPerformanceAnalysis } from "./campaign-performance-analyzer.ts";
+import type { CompetitorAnalysis } from "./competitor-analysis.ts";
 import type { GA4Data, GA4DataState, GA4Metrics } from "./ga4.ts";
 import type { GoogleAdsDailyMetric } from "./google-ads.ts";
 import type { LandingPageAnalysis } from "./landing-page-analysis.ts";
@@ -31,6 +32,7 @@ export type SpecialistMarketingContext = {
   searchConsole: SearchConsoleDataState;
   rankTracking: SeoRankTrackingState;
   landingPageAnalysis?: LandingPageAnalysis;
+  competitorAnalysis?: CompetitorAnalysis;
 };
 
 export type ExecuteSpecialistRequest = {
@@ -324,7 +326,57 @@ function analyticsExecution(
   };
 }
 
-function croExecution(context: SpecialistMarketingContext): SpecialistExecution {
+function competitorCroExecution(competitor: CompetitorAnalysis): SpecialistExecution {
+  const selectedFacts = (competitor.patterns.length ? competitor.patterns : competitor.observations).slice(0, 3);
+  const selectedIdeas = [...competitor.opportunities, ...competitor.hypotheses].slice(0, 3);
+  const evidence: MarketingEvidence[] = selectedFacts.map((finding) => ({
+    metric: `Competitor evidence: ${finding.category.replaceAll("_", " ")}`.slice(0, 100),
+    value: finding.evidenceIds.length,
+    unit: "count",
+    context: `${finding.statement} Evidence IDs: ${finding.evidenceIds.join(", ")}.`.slice(0, 300),
+  }));
+  const hypotheses = selectedIdeas.map((idea) => ({
+    id: idea.id,
+    statement: idea.statement,
+    validationNeeded: "Review the cited public-page evidence, define a workspace-page variant, and validate it with a controlled test or manual research before drawing a performance conclusion.",
+  }));
+  const recommendations = selectedIdeas.map((idea, index) => ({
+    action: `Investigate: ${idea.title}.`,
+    rationale: "This is an evidence-linked competitor hypothesis, not a claim that competitor wording performs better.",
+    priority: index === 0 ? "medium" as const : "low" as const,
+    evidence: evidence.slice(0, Math.min(evidence.length, 3)),
+    hypothesisId: idea.id,
+    sourceAgentIds: ["cro-analyst" as const],
+  }));
+  const availableCount = competitor.competitors.filter((item) => item.status === "available").length;
+  const answer = selectedFacts.length
+    ? `${availableCount} competitor page(s) were retrieved. ${selectedFacts[0]!.statement} ${competitor.ownPage.status === "available" ? "The comparison also uses the workspace's stored validated landing-page evidence." : "Direct first-party comparison is unavailable."} Any differentiation recommendation remains a hypothesis, not evidence of conversion performance.`
+    : "No competitor page was retrieved successfully, so Crush cannot make a competitor comparison.";
+  const limitations = competitor.limitations.slice(0, 4);
+  const analysis = specialistAnalysisSchema.parse({
+    agent: specialistIdentity("cro-analyst"),
+    summary: answer,
+    findings: selectedFacts.length
+      ? selectedFacts.map((finding, index) => ({ title: finding.title, detail: finding.statement, kind: "measured" as const, evidence: evidence[index] ? [evidence[index]] : [], sourceAgentIds: ["cro-analyst" as const] }))
+      : [{ title: "Competitor evidence unavailable", detail: answer, kind: "limitation" as const, evidence: [], sourceAgentIds: ["cro-analyst" as const] }],
+    evidence,
+    recommendations,
+    limitations,
+    confidence: selectedFacts.length ? 0.68 : 0.15,
+    hypotheses,
+  });
+  return { analysis, response: { status: selectedFacts.length ? "supported" : "insufficient_data", answer, supportingEvidence: evidence, limitations, referencedEntities: [] } };
+}
+
+function croExecution(context: SpecialistMarketingContext, request: ExecuteSpecialistRequest): SpecialistExecution {
+  if (/\b(?:competitors?|competitive|positioning|messaging gaps?)\b/i.test(request.question)) {
+    if (context.competitorAnalysis) return competitorCroExecution(context.competitorAnalysis);
+    return ga4UnavailableExecution(
+      "cro-analyst",
+      "No workspace-scoped competitor analysis is available. Run Competitor analysis with explicit public URLs before asking for a comparison.",
+      ["Competitor URLs and public-page evidence are unavailable; no competitor facts or private performance can be inferred."],
+    );
+  }
   if (context.landingPageAnalysis) {
     const pageAnalysis = context.landingPageAnalysis;
     const topIssues = pageAnalysis.issues.slice(0, 3);
@@ -621,7 +673,7 @@ function executeOne(
 ): SpecialistExecution {
   if (id === "ppc-analyst") return ppcExecution(context, request, broad);
   if (id === "analytics-analyst") return analyticsExecution(context, request);
-  if (id === "cro-analyst") return croExecution(context);
+  if (id === "cro-analyst") return croExecution(context, request);
   return seoExecution(context, request);
 }
 

@@ -80,6 +80,13 @@ export async function resolvePublicAddress(hostname: string, resolver: DnsResolv
   return { address: selected.address, family: selected.family as 4 | 6 };
 }
 
+export function validateLandingPageRedirect(location: string | undefined, current: URL): URL {
+  if (!location) throw new LandingPageRetrievalError("invalid_redirect", "The landing page returned a redirect without a destination.");
+  try { return validateLandingPageUrl(new URL(location, current).toString()); } catch (error) {
+    throw error instanceof LandingPageRetrievalError ? error : new LandingPageRetrievalError("invalid_redirect", "The redirect URL is invalid.");
+  }
+}
+
 type RawResponse = { status: number; headers: http.IncomingHttpHeaders; body: Buffer };
 
 export function validateLandingPageResponse(response: RawResponse): void {
@@ -133,17 +140,13 @@ export async function retrieveLandingPage(input: string): Promise<RetrievedLandi
   for (let redirectCount = 0; redirectCount <= LANDING_PAGE_RETRIEVAL_LIMITS.maxRedirects; redirectCount += 1) {
     const beforeDns = deadline - Date.now();
     if (beforeDns <= 0) throw new LandingPageRetrievalError("timeout", "The landing page did not respond before the retrieval timeout.");
-    const resolved = await promiseWithTimeout(resolvePublicAddress(current.hostname), beforeDns);
+    const resolved = await withLandingPageRetrievalTimeout(resolvePublicAddress(current.hostname), beforeDns);
     const beforeRequest = deadline - Date.now();
     if (beforeRequest <= 0) throw new LandingPageRetrievalError("timeout", "The landing page did not respond before the retrieval timeout.");
     const response = await requestPinned(current, resolved.address, beforeRequest);
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       if (redirectCount === LANDING_PAGE_RETRIEVAL_LIMITS.maxRedirects) throw new LandingPageRetrievalError("invalid_redirect", "The landing page exceeded the redirect limit.");
-      const location = response.headers.location;
-      if (!location) throw new LandingPageRetrievalError("invalid_redirect", "The landing page returned a redirect without a destination.");
-      let next: URL;
-      try { next = validateLandingPageUrl(new URL(location, current).toString()); } catch (error) { throw error instanceof LandingPageRetrievalError ? error : new LandingPageRetrievalError("invalid_redirect", "The redirect URL is invalid."); }
-      current = next;
+      current = validateLandingPageRedirect(response.headers.location, current);
       continue;
     }
     validateLandingPageResponse(response);
@@ -153,7 +156,7 @@ export async function retrieveLandingPage(input: string): Promise<RetrievedLandi
   throw new LandingPageRetrievalError("invalid_redirect", "The landing page exceeded the redirect limit.");
 }
 
-function promiseWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+export function withLandingPageRetrievalTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new LandingPageRetrievalError("timeout", "The landing-page host did not resolve before the retrieval timeout.")), timeoutMs);
     timer.unref?.();
