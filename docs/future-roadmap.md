@@ -286,6 +286,8 @@ observability exist.
 
 ### Automatic negative-keyword generation
 
+> **Implemented in V2 Issue #11 as recommendation-only proposals.** Crush now creates tenant-scoped, evidence-grounded, conservatively exact-match review artifacts with deterministic materiality, protection, conflict, conversion-lag, and AI allowlist safeguards. Existing-negative retrieval, durable approval, and every Google Ads mutation remain future work.
+
 - **What:** Turn qualifying search terms into proposed negative keywords with
   match type, level, rationale, and estimated affected traffic.
 - **Why:** Reduce repetitive query review and make waste-control recommendations

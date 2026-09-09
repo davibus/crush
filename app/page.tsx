@@ -15,6 +15,7 @@ import LandingPageAnalysisPanel from "@/app/components/landing-page-analysis-pan
 import LandingPageGenerationPanel from "@/app/components/landing-page-generation-panel";
 import MarketingDataChat from "@/app/components/marketing-data-chat";
 import MarketingInsightsWorkspace from "@/app/components/marketing-insights-workspace";
+import NegativeKeywordProposalsPanel from "@/app/components/negative-keyword-proposals-panel";
 import MarketingPerformanceCharts from "@/app/components/marketing-performance-charts";
 import PdfReportDownload from "@/app/components/pdf-report-download";
 import SearchConsoleContextPanel from "@/app/components/search-console-context-panel";
@@ -276,6 +277,7 @@ export async function ClientDashboard({
           <LandingPageAnalysisPanel clientId={client.id} />
           <CompetitorAnalysisPanel clientId={client.id} />
           <AdCopyGenerationPanel clientId={client.id} />
+          <NegativeKeywordProposalsPanel clientId={client.id} currency={data.account.currency} />
           <LandingPageGenerationPanel clientId={client.id} />
           <DailyAnalysisPanel clientId={client.id} />
           <MarketingInsightsWorkspace clientId={client.id} currency={data.account.currency} />

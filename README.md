@@ -177,6 +177,12 @@ evidence. See [docs/landing-page-generation.md](docs/landing-page-generation.md)
 for schemas, grounding, fallback behavior, security boundaries, limitations,
 and verification.
 
+## Negative-keyword review proposals
+
+Each authorized workspace can turn material, zero-conversion Google Ads search-term evidence into versioned negative-keyword proposals showing exact match type, campaign/ad-group scope, rationale, evidence IDs, confidence strength, and deterministic historical affected traffic. Brand, converted, allowlisted, intentionally targeted, conflicting, trivial, and duplicate terms are withheld. Live rolling periods use a higher evidence floor and preserve conversion-lag uncertainty.
+
+This is **recommendation only**: no Google Ads changes are made, there is no apply/publish control, and browser-local review labels do not represent account execution. Optional AI can only reorder already-approved proposal IDs; invalid or unavailable AI leaves the deterministic result intact. Existing negative keywords are not currently loaded by the read adapter, so account-level duplicate awareness remains incomplete and is disclosed in the UI. See [docs/negative-keyword-proposals.md](docs/negative-keyword-proposals.md) for rules, safeguards, isolation, limitations, and verification.
+
 ## Daily Analysis
 
 The workspace can produce a saved daily performance analysis directly from the
@@ -270,6 +276,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [Competitor analysis](docs/competitor-analysis.md)
 - [AI ad-copy drafting](docs/ad-copy-generation.md)
 - [AI landing-page drafting](docs/landing-page-generation.md)
+- [Negative-keyword review proposals](docs/negative-keyword-proposals.md)
 - [Account score methodology](docs/account-score.md)
 
 ## Deployment note

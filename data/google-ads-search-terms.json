@@ -69,6 +69,48 @@
       "cost": 379.6,
       "conversions": 1,
       "conversionValue": 130
+    },
+    {
+      "id": "st-006",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "searchTerm": "google ads jobs remote",
+      "matchedKeyword": "google ads management",
+      "matchType": "BROAD",
+      "impressions": 1180,
+      "clicks": 72,
+      "cost": 216,
+      "conversions": 0,
+      "conversionValue": 0
+    },
+    {
+      "id": "st-007",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "searchTerm": "google ads certification course",
+      "matchedKeyword": "google ads management",
+      "matchType": "BROAD",
+      "impressions": 1390,
+      "clicks": 84,
+      "cost": 235.2,
+      "conversions": 0,
+      "conversionValue": 0
+    },
+    {
+      "id": "st-008",
+      "campaignId": "camp-002",
+      "campaignName": "Non-Brand Search",
+      "adGroup": "PPC Management",
+      "searchTerm": "ppc agency jobs",
+      "matchedKeyword": "ppc agency",
+      "matchType": "BROAD",
+      "impressions": 1040,
+      "clicks": 65,
+      "cost": 182,
+      "conversions": 0,
+      "conversionValue": 0
     }
   ]
 }
