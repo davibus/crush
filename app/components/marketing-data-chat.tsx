@@ -216,6 +216,8 @@ export default function MarketingDataChat({
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (messages.length === 0 && !isLoading && !error) return;
+
     conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading, error]);
 
