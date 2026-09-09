@@ -166,10 +166,12 @@ const agents = [
       "Google Ads account and campaign metrics",
       "Loaded keyword, search-term, geography, device, conversion, and daily rows",
       "GA4 paid-media context only when an exact grounded join is available",
+      "Workspace-scoped validated ad-copy drafts, clearly labeled creative output",
     ],
     boundaries: [
       "Does not invent reasons for performance changes",
       "Does not claim impression-share, bidding, margin, or lead-quality facts when unavailable",
+      "Does not predict that generated copy will improve CTR, CVR, CPA, ROAS, or conversions",
     ],
   }),
   defineAgent({
@@ -265,7 +267,7 @@ const routingSignals: ReadonlyArray<{
 }> = [
   {
     id: "ppc-analyst",
-    pattern: /\b(?:google ads?|paid media|paid search|ppc|campaigns?|ad groups?|keywords?|search terms?|cpa|cpc|ctr|roas|spend|budget|bidding)\b/i,
+    pattern: /\b(?:google ads?|paid media|paid search|ppc|campaigns?|ad groups?|keywords?|search terms?|ad copy|headlines?|descriptions?|cpa|cpc|ctr|roas|spend|budget|bidding)\b/i,
   },
   {
     id: "analytics-analyst",

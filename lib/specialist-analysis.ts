@@ -1,4 +1,5 @@
 import type { PreparedCampaignPerformanceAnalysis } from "./campaign-performance-analyzer.ts";
+import type { AdCopyDraftResult } from "./ad-copy-generation.ts";
 import type { CompetitorAnalysis } from "./competitor-analysis.ts";
 import type { GA4Data, GA4DataState, GA4Metrics } from "./ga4.ts";
 import type { GoogleAdsDailyMetric } from "./google-ads.ts";
@@ -33,6 +34,7 @@ export type SpecialistMarketingContext = {
   rankTracking: SeoRankTrackingState;
   landingPageAnalysis?: LandingPageAnalysis;
   competitorAnalysis?: CompetitorAnalysis;
+  adCopyDraft?: AdCopyDraftResult;
 };
 
 export type ExecuteSpecialistRequest = {
@@ -186,6 +188,36 @@ function ppcExecution(
   request: ExecuteSpecialistRequest,
   broad = false,
 ): SpecialistExecution {
+  const asksForAdCopy = /\b(?:ad copy|headlines?|descriptions?|write|draft|creative|(?:this|the) ad)\b/i.test(request.question) && /\b(?:ads?|ppc|paid|google|copy|headlines?|descriptions?)\b/i.test(request.question);
+  if (asksForAdCopy) {
+    const predictsPerformance = /\b(?:will|guarantee|predict|expect)\b[\s\S]{0,40}\b(?:ctr|click[- ]through|cvr|conversion rate|roas|conversions?|perform|lift|improve|increase)\b|\b\d+\s*%\b/i.test(request.question);
+    const stored = context.adCopyDraft;
+    if (!stored || stored.status !== "ready" || stored.candidates.length === 0) {
+      return ga4UnavailableExecution(
+        "ppc-analyst",
+        "No validated workspace-scoped ad-copy draft is available. Use AI ad-copy drafting first; Crush will create review-only candidates and will not publish them.",
+        ["Search themes or campaign metrics alone are not a substitute for validated first-party business claims."],
+      );
+    }
+    const candidate = stored.candidates[0]!;
+    const countEvidence: MarketingEvidence[] = [
+      { metric: "Validated draft headlines", value: candidate.headlines.length, unit: "count", context: `${stored.schemaVersion}; generated creative output, not measured performance.` },
+      { metric: "Validated draft descriptions", value: candidate.descriptions.length, unit: "count", context: `${stored.schemaVersion}; generated creative output, not measured performance.` },
+    ];
+    const performanceLimitation = "Creative performance cannot be predicted from a draft. Any CTR, CVR, CPA, ROAS, or conversion effect must be evaluated through an actual controlled advertising test.";
+    const answer = predictsPerformance
+      ? `${performanceLimitation} The stored candidate remains DRAFT ONLY and has not been uploaded or tested.`
+      : `The latest DRAFT ONLY candidate uses the “${candidate.creativeAngle}” angle. Headlines include ${candidate.headlines.slice(0, 3).map((item) => `“${item}”`).join(", ")}; descriptions include ${candidate.descriptions.slice(0, 2).map((item) => `“${item}”`).join(" and ")}. These are generated creative suggestions, not measured conclusions, and no ad was uploaded or published.`;
+    const hypothesis = { id: `ad-copy:${candidate.id}`, statement: `Hypothesis: the reviewed “${candidate.creativeAngle}” message is suitable for a controlled creative test; no performance outcome is predicted.`, validationNeeded: "Complete human brand, policy, offer, destination, and claim review, then evaluate through a separately authorized controlled advertising test." };
+    const analysis = specialistAnalysisSchema.parse({
+      agent: specialistIdentity("ppc-analyst"), summary: answer,
+      findings: [{ title: "Validated generated ad-copy context", detail: `A stored draft contains ${candidate.headlines.length} headlines and ${candidate.descriptions.length} descriptions. The assets are creative suggestions, not measured ad results.`, kind: "measured", evidence: countEvidence, sourceAgentIds: ["ppc-analyst"] }],
+      evidence: countEvidence,
+      recommendations: predictsPerformance ? [] : [{ action: hypothesis.validationNeeded, rationale: "Validation requires human review and a real test; draft generation does not establish expected performance.", priority: "medium", evidence: countEvidence, hypothesisId: hypothesis.id, sourceAgentIds: ["ppc-analyst"] }],
+      limitations: [performanceLimitation, ...stored.limitations.slice(0, 3)], confidence: predictsPerformance ? 0.98 : 0.85, hypotheses: predictsPerformance ? [] : [hypothesis],
+    });
+    return { analysis, response: { status: predictsPerformance ? "unsupported" : "supported", answer, supportingEvidence: countEvidence, limitations: analysis.limitations.slice(0, 4), referencedEntities: [] } };
+  }
   const candidates = buildGroundedChatCandidates(context.analysis, context.dailyMetrics);
   let selected: GroundedChatCandidate[];
   if (broad) {
@@ -221,7 +253,7 @@ function ppcExecution(
 }
 
 function ga4UnavailableExecution(
-  agentId: "analytics-analyst" | "cro-analyst" | "seo-analyst",
+  agentId: Exclude<SpecialistAgentId, "marketing-strategist">,
   answer: string,
   limitations: string[],
   hypothesis?: SpecialistAnalysis["hypotheses"][number],

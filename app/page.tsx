@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { signOut } from "@/auth";
 import crushTurtle from "@/images/crush-turtle.png";
 import AccountAudit from "@/app/components/account-audit";
+import AdCopyGenerationPanel from "@/app/components/ad-copy-generation-panel";
 import ClientSelector from "@/app/components/client-selector";
 import CompetitorAnalysisPanel from "@/app/components/competitor-analysis-panel";
 import DailyAnalysisPanel from "@/app/components/daily-analysis-panel";
@@ -273,6 +274,7 @@ export async function ClientDashboard({
           <SectionIntro description="Combine deterministic comparisons with structured AI interpretation to focus attention on changes that matter." eyebrow="AI analysis" title="Move from signals to next actions" />
           <LandingPageAnalysisPanel clientId={client.id} />
           <CompetitorAnalysisPanel clientId={client.id} />
+          <AdCopyGenerationPanel clientId={client.id} />
           <DailyAnalysisPanel clientId={client.id} />
           <MarketingInsightsWorkspace clientId={client.id} currency={data.account.currency} />
         </section>

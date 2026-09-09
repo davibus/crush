@@ -141,6 +141,21 @@ provide a credential-free demo. See
 [docs/competitor-analysis.md](docs/competitor-analysis.md) for retrieval security,
 grounding, limitations, demo steps, and verification.
 
+## AI ad-copy drafting
+
+Each authorized workspace can create **DRAFT ONLY** Google responsive search ad
+headlines and descriptions from a bounded evidence pack. Validated first-party
+landing-page claims remain separate from paid/organic search-language themes and
+external competitor inspiration. Application code validates RSA counts and
+character limits, duplicate assets, evidence IDs, and detectable unsupported
+claims after optional AI generation; missing or invalid AI output uses a safe
+first-party template when possible and otherwise reports insufficient data.
+
+Drafts are never uploaded or published, and Crush exposes no Google Ads mutation
+action. The Paid Media specialist can discuss the latest workspace-scoped draft
+without predicting performance. See [docs/ad-copy-generation.md](docs/ad-copy-generation.md)
+for evidence rules, fallback behavior, security, demo steps, and verification.
+
 ## Daily Analysis
 
 The workspace can produce a saved daily performance analysis directly from the
@@ -232,6 +247,7 @@ The [post-V1 future roadmap](docs/future-roadmap.md) organizes proposed data-sou
 - [SEO rank tracking](docs/seo-rank-tracking.md)
 - [Landing-page analysis](docs/landing-page-analysis.md)
 - [Competitor analysis](docs/competitor-analysis.md)
+- [AI ad-copy drafting](docs/ad-copy-generation.md)
 - [Account score methodology](docs/account-score.md)
 
 ## Deployment note

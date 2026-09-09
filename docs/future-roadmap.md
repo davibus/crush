@@ -230,6 +230,14 @@ this phase.
 
 ### AI-generated ad copy
 
+> **Implemented in V2 Issue #9:** Crush now produces tenant-scoped, draft-only
+> Google responsive search ad candidates from bounded first-party evidence and
+> clearly separated search/competitor inspiration. Deterministic schema,
+> character-limit, duplicate, evidence-ID, and detectable-claim validation runs
+> after optional AI generation, with safe fallback or explicit insufficient-data
+> behavior. Publishing, platform approval, durable draft history, broader policy
+> automation, and every Google Ads mutation remain future work.
+
 - **What:** Draft headlines, descriptions, calls to action, and structured variants
   for a selected campaign brief.
 - **Why:** Speed up ideation while connecting copy to measured themes and approved
@@ -409,9 +417,7 @@ user value, fit with V1, complexity, and the risk of crossing a trust boundary:
 6. **Extend bounded competitor analysis only with approved sources.** Explicit
    public-page comparison is implemented; licensed advertising/search data,
    durable snapshots, cost controls, and broader compliance review remain future.
-7. **Introduce ad-copy drafts, then landing-page drafts.** Copy has a smaller
-   surface area; page generation needs preview isolation plus broader security,
-   accessibility, analytics, and publishing controls.
+7. **Extend implemented ad-copy drafts only after review, then consider landing-page drafts.** Draft-only RSA copy is implemented; durable approvals, richer policy validation, and any later delivery integration require separate safety work. Page generation still needs preview isolation plus broader security, accessibility, analytics, and publishing controls.
 8. **Generate negative-keyword proposals without writes.** This closely matches
    an existing V1 deterministic candidate and provides a safe approval workflow
    to test.

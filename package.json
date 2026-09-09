@@ -25,6 +25,7 @@
     "verify:seo-rank-tracking": "node --conditions=react-server --experimental-strip-types scripts/verify-seo-rank-tracking.ts",
     "verify:landing-page-analysis": "node --conditions=react-server --experimental-strip-types scripts/verify-landing-page-analysis.ts",
     "verify:competitor-analysis": "node --conditions=react-server --experimental-strip-types scripts/verify-competitor-analysis.ts",
+    "verify:ad-copy-generation": "node --conditions=react-server --experimental-strip-types scripts/verify-ad-copy-generation.ts",
     "verify:daily-analysis": "node --conditions=react-server --experimental-strip-types scripts/verify-daily-analysis.ts",
     "verify:weekly-report": "node --conditions=react-server --experimental-strip-types scripts/verify-weekly-report.ts",
     "verify:clients": "node --conditions=react-server --experimental-strip-types scripts/verify-clients.ts",

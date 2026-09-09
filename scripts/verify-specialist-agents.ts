@@ -22,6 +22,7 @@ import { buildSeoRankTracking } from "../lib/seo-rank-tracking.ts";
 import { buildDeterministicLandingPageAnalysis } from "../lib/landing-page-analysis.ts";
 import { buildDeterministicCompetitorAnalysis } from "../lib/competitor-analysis.ts";
 import { SEARCH_CONSOLE_SOURCE, SEARCH_CONSOLE_SOURCE_LABEL, type SearchConsoleDataState } from "../lib/search-console.ts";
+import { AD_COPY_SCHEMA_VERSION, adCopyDraftResultSchema } from "../lib/ad-copy-generation.ts";
 
 async function loadJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(new URL(path, import.meta.url), "utf8")) as T;
@@ -103,6 +104,28 @@ assert.equal(ppc.response.specialist?.id, "ppc-analyst");
 assert.equal(ppc.response.workflow, "single_specialist");
 assert.equal(ppc.response.status, "unsupported");
 assert.match(ppc.response.answer, /historical information/i);
+
+const adCopyDraft = adCopyDraftResultSchema.parse({
+  schemaVersion: AD_COPY_SCHEMA_VERSION, workspace: { id: "demo", name: "Northstar" }, generatedAt: "2026-09-08T12:00:00.000Z", format: "google_responsive_search_ad", draftOnly: true, published: false, status: "ready", fictional: true, objective: null,
+  sourceStatus: [
+    { source: "workspace_landing_page", status: "available", detail: "Validated first-party page language." },
+    { source: "google_ads", status: "available", detail: "Paid search themes." },
+    { source: "search_console", status: "unavailable", detail: "No organic query evidence." },
+    { source: "competitor_analysis", status: "unavailable", detail: "No competitor evidence." },
+  ],
+  evidence: [{ id: "ac:first_party:landing:h1", scope: "first_party", source: "workspace_landing_page", kind: "business_language", text: "Make the weekend count", reusePolicy: "claim_and_theme", observed: true, fictional: true }],
+  candidates: [{ id: "draft-1", source: "ai", creativeAngle: "Weekend readiness", rationale: "Creative suggestion only.", headlines: ["Make The Weekend Count", "Explore Your Options", "Learn More Today"], descriptions: ["Make the weekend count. Explore the details.", "Review the options and choose your next step."], claimEvidenceIds: ["ac:first_party:landing:h1"], inspirationEvidenceIds: [], validation: { status: "valid", checkedAt: "2026-09-08T12:00:00.000Z", rules: ["Validated"] } }],
+  limitations: ["Draft only; performance requires a controlled test."], ai: { status: "generated", detail: "Validated creative output." },
+});
+const ppcDraft = executeSpecialistWorkflow({ ...context, adCopyDraft }, { question: "Write some Google Ads copy based on this account" });
+assert.equal(ppcDraft.response.specialist?.id, "ppc-analyst");
+assert.equal(ppcDraft.response.status, "supported");
+assert.match(ppcDraft.response.answer, /DRAFT ONLY/i);
+assert.match(ppcDraft.response.answer, /generated creative suggestions, not measured conclusions/i);
+const ppcPrediction = executeSpecialistWorkflow({ ...context, adCopyDraft }, { question: "Will this ad increase CTR by 20%?" });
+assert.equal(ppcPrediction.response.status, "unsupported");
+assert.match(ppcPrediction.response.answer, /controlled advertising test/i);
+assert.doesNotMatch(ppcPrediction.response.answer, /will increase|expected lift/i);
 
 const analytics = executeSpecialistWorkflow(context, {
   question: "Why did sessions decline compared with the previous period?",

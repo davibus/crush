@@ -25,6 +25,7 @@ import {
 import { executeSpecialistWorkflow } from "@/lib/specialist-analysis";
 import { getWorkspaceLandingPageAnalysis } from "@/lib/landing-page-analysis-store";
 import { getWorkspaceCompetitorAnalysis } from "@/lib/competitor-analysis-store";
+import { getWorkspaceAdCopyDraft } from "@/lib/ad-copy-store";
 import { buildSeoRankTracking } from "@/lib/seo-rank-tracking";
 import { resolveApiWorkspace } from "@/lib/workspace-access";
 
@@ -165,6 +166,7 @@ export async function POST(request: Request) {
         rankTracking: buildSeoRankTracking(marketingData.searchConsole),
         landingPageAnalysis: getWorkspaceLandingPageAnalysis(client.id),
         competitorAnalysis: getWorkspaceCompetitorAnalysis(client.id),
+        adCopyDraft: getWorkspaceAdCopyDraft(client.id),
       },
       chatRequest,
     );
